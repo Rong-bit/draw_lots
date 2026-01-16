@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react';
 // 如果是 GitHub Pages 部署，使用環境變量設置 base 路徑
 // 如果是自訂域名，base 設為 '/'；如果是 gh-pages，base 為 '/倉庫名稱/'
 const base = process.env.GITHUB_PAGES 
-  ? `/${process.env.REPO_NAME || '抽籤系統'}/`
+  ? `/${process.env.REPO_NAME || 'draw_lots'}/`
   : '/';
 
 export default defineConfig({
