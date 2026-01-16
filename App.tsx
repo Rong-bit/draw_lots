@@ -33,7 +33,7 @@ import {
   DrawSettings, 
   DrawWinner 
 } from './types';
-import { playSound } from './lib/audio';
+import { playSound, playMp3Loop, stopMp3Loop } from './lib/audio';
 
 // --- Components ---
 
@@ -52,6 +52,7 @@ const SectionTitle: React.FC<{ icon: React.ReactNode; title: string; subtitle?: 
 const App: React.FC = () => {
   // --- Refs ---
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const mp3InputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // --- State ---
@@ -160,6 +161,28 @@ const App: React.FC = () => {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const handleMp3Upload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // 检查文件类型
+    if (!file.type.startsWith('audio/')) {
+      alert('請選擇音頻文件（MP3格式）');
+      if (mp3InputRef.current) mp3InputRef.current.value = '';
+      return;
+    }
+    
+    // 清理旧的blob URL（如果不是默认文件）
+    if (settings.mp3SoundUrl && settings.mp3SoundUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(settings.mp3SoundUrl);
+    }
+    
+    // 创建新的blob URL
+    const url = URL.createObjectURL(file);
+    setSettings(s => ({ ...s, mp3SoundUrl: url, soundEffect: SoundEffect.MP3 }));
+    if (mp3InputRef.current) mp3InputRef.current.value = '';
+  };
+
   const handleExport = () => {
     if (results.length === 0) return;
     const BOM = '\uFEFF';
@@ -180,7 +203,23 @@ const App: React.FC = () => {
     setShowModal(false);
     setActiveDrawName('');
     setSpinningName('');
+    stopMp3Loop(); // 重置时停止音效
   };
+
+  // 清理音效
+  useEffect(() => {
+    return () => {
+      // 组件卸载时停止音效
+      stopMp3Loop();
+    };
+  }, []);
+
+  // 当设置模态框关闭时停止循环播放
+  useEffect(() => {
+    if (!showSettingsModal) {
+      stopMp3Loop();
+    }
+  }, [showSettingsModal]);
 
   const handleShuffleParticipants = () => {
     const lines = participantInput.split('\n').filter(line => line.trim());
@@ -219,6 +258,11 @@ const App: React.FC = () => {
 
     if (eligible.length === 0) return null;
 
+    // 開始播放MP3循環音效（如果選擇了MP3）
+    if (settings.soundEffect === SoundEffect.MP3 && settings.mp3SoundUrl) {
+      playMp3Loop(settings.mp3SoundUrl);
+    }
+
     // 儀式感：跑名單
     if (!settings.fastMode) {
       const spinCount = 12;
@@ -231,13 +275,23 @@ const App: React.FC = () => {
     const winner = eligible[Math.floor(Math.random() * eligible.length)];
     if (settings.noDuplicate) usedNames.add(winner.name);
 
+    // 停止循環播放
+    stopMp3Loop();
+
     const result: DrawWinner = {
       prizeName,
       winner,
       serialNumber: settings.showSerialNumber ? index + 1 : undefined
     };
 
-    if (settings.soundEffect !== SoundEffect.NONE) playSound(settings.soundEffect);
+    // 播放結果音效
+    if (settings.soundEffect !== SoundEffect.NONE) {
+      if (settings.soundEffect === SoundEffect.MP3 && settings.mp3SoundUrl) {
+        playSound(settings.soundEffect, settings.mp3SoundUrl);
+      } else {
+        playSound(settings.soundEffect);
+      }
+    }
     
     return result;
   };
@@ -578,31 +632,114 @@ const App: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 pt-4 border-t border-slate-50">
-                  <button 
-                    onClick={() => setSettings(s => ({...s, soundEffect: s.soundEffect === SoundEffect.SOUND_1 ? SoundEffect.NONE : SoundEffect.SOUND_1}))}
-                    className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all font-bold text-xs ${settings.soundEffect === SoundEffect.SOUND_1 ? 'bg-amber-50 border-amber-400 text-amber-700' : 'bg-slate-50 border-slate-50 text-slate-400'}`}
-                  >
-                    <Volume2 size={14} /> 音效 1
-                  </button>
-                  <button 
-                    onClick={() => setSettings(s => ({...s, soundEffect: s.soundEffect === SoundEffect.SOUND_2 ? SoundEffect.NONE : SoundEffect.SOUND_2}))}
-                    className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all font-bold text-xs ${settings.soundEffect === SoundEffect.SOUND_2 ? 'bg-amber-50 border-amber-400 text-amber-700' : 'bg-slate-50 border-slate-50 text-slate-400'}`}
-                  >
-                    <Volume2 size={14} /> 音效 2
-                  </button>
-                  <button 
-                    onClick={() => setSettings(s => ({...s, showConfetti: !s.showConfetti}))}
-                    className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all font-bold text-xs ${settings.showConfetti ? 'bg-pink-50 border-pink-400 text-pink-700' : 'bg-slate-50 border-slate-50 text-slate-400'}`}
-                  >
-                    <PartyPopper size={14} /> 彩帶效果
-                  </button>
-                  <button 
-                    onClick={() => setSettings(s => ({...s, fastMode: !s.fastMode}))}
-                    className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all font-bold text-xs ${settings.fastMode ? 'bg-cyan-50 border-cyan-400 text-cyan-700' : 'bg-slate-50 border-slate-50 text-slate-400'}`}
-                  >
-                    <Zap size={14} /> 快速模式
-                  </button>
+                <div className="space-y-3 pt-4 border-t border-slate-50">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">音效設定</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button 
+                      onClick={() => setSettings(s => ({...s, soundEffect: s.soundEffect === SoundEffect.SOUND_1 ? SoundEffect.NONE : SoundEffect.SOUND_1}))}
+                      className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all font-bold text-xs ${settings.soundEffect === SoundEffect.SOUND_1 ? 'bg-amber-50 border-amber-400 text-amber-700' : 'bg-slate-50 border-slate-50 text-slate-400'}`}
+                    >
+                      <Volume2 size={14} /> 音效 1
+                    </button>
+                    <button 
+                      onClick={() => setSettings(s => ({...s, soundEffect: s.soundEffect === SoundEffect.SOUND_2 ? SoundEffect.NONE : SoundEffect.SOUND_2}))}
+                      className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all font-bold text-xs ${settings.soundEffect === SoundEffect.SOUND_2 ? 'bg-amber-50 border-amber-400 text-amber-700' : 'bg-slate-50 border-slate-50 text-slate-400'}`}
+                    >
+                      <Volume2 size={14} /> 音效 2
+                    </button>
+                  </div>
+                  
+                  {/* MP3音效上传 */}
+                  <div className={`p-4 rounded-xl border-2 transition-all ${settings.soundEffect === SoundEffect.MP3 ? 'bg-purple-50 border-purple-400' : 'bg-slate-50 border-slate-50'}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={settings.soundEffect === SoundEffect.MP3}
+                          onChange={e => {
+                            if (e.target.checked) {
+                              if (!settings.mp3SoundUrl) {
+                                mp3InputRef.current?.click();
+                              } else {
+                                setSettings(s => ({...s, soundEffect: SoundEffect.MP3}));
+                              }
+                            } else {
+                              setSettings(s => ({...s, soundEffect: SoundEffect.NONE}));
+                            }
+                          }}
+                          className="w-4 h-4 rounded border-slate-300 text-purple-600"
+                        />
+                        <span className="text-sm font-bold text-slate-600">MP3 自訂音效</span>
+                      </label>
+                      {settings.mp3SoundUrl && (
+                        <button
+                          onClick={() => {
+                            // 只清理blob URL，不清理默认文件URL
+                            if (settings.mp3SoundUrl && settings.mp3SoundUrl.startsWith('blob:')) {
+                              URL.revokeObjectURL(settings.mp3SoundUrl);
+                            }
+                            setSettings(s => ({...s, mp3SoundUrl: undefined, soundEffect: s.soundEffect === SoundEffect.MP3 ? SoundEffect.NONE : s.soundEffect}));
+                          }}
+                          className="text-xs text-red-500 hover:text-red-700 font-bold"
+                        >
+                          清除
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          // 使用默认MP3文件
+                          const defaultMp3Url = '/14096.mp3';
+                          setSettings(s => ({ ...s, mp3SoundUrl: defaultMp3Url, soundEffect: SoundEffect.MP3 }));
+                        }}
+                        className={`flex-1 px-4 py-2 rounded-lg border-2 transition-all font-bold text-xs ${
+                          settings.soundEffect === SoundEffect.MP3 && settings.mp3SoundUrl === '/14096.mp3'
+                            ? 'bg-purple-100 border-purple-300 text-purple-700'
+                            : 'bg-white border-slate-200 text-slate-500 hover:border-purple-300'
+                        }`}
+                      >
+                        {settings.mp3SoundUrl === '/14096.mp3' ? '✓ 使用預設音效' : '使用預設音效'}
+                      </button>
+                      <button
+                        onClick={() => mp3InputRef.current?.click()}
+                        className={`flex-1 px-4 py-2 rounded-lg border-2 transition-all font-bold text-xs ${
+                          settings.soundEffect === SoundEffect.MP3 && settings.mp3SoundUrl && settings.mp3SoundUrl !== '/14096.mp3'
+                            ? 'bg-purple-100 border-purple-300 text-purple-700'
+                            : 'bg-white border-slate-200 text-slate-500 hover:border-purple-300'
+                        }`}
+                      >
+                        {settings.mp3SoundUrl && settings.mp3SoundUrl !== '/14096.mp3' ? '✓ 已上傳' : '上傳自訂'}
+                      </button>
+                    </div>
+                    <input 
+                      type="file" 
+                      ref={mp3InputRef} 
+                      onChange={handleMp3Upload} 
+                      accept="audio/*,.mp3" 
+                      className="hidden" 
+                    />
+                    {settings.mp3SoundUrl && (
+                      <p className="text-[10px] text-purple-600 mt-2 font-medium">
+                        ✓ MP3音效已載入{settings.mp3SoundUrl === '/14096.mp3' ? '（預設音效）' : '（自訂音效）'}，將在抽獎過程中循環播放
+                      </p>
+                    )}
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-2 pt-2">
+                    <button 
+                      onClick={() => setSettings(s => ({...s, showConfetti: !s.showConfetti}))}
+                      className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all font-bold text-xs ${settings.showConfetti ? 'bg-pink-50 border-pink-400 text-pink-700' : 'bg-slate-50 border-slate-50 text-slate-400'}`}
+                    >
+                      <PartyPopper size={14} /> 彩帶效果
+                    </button>
+                    <button 
+                      onClick={() => setSettings(s => ({...s, fastMode: !s.fastMode}))}
+                      className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all font-bold text-xs ${settings.fastMode ? 'bg-cyan-50 border-cyan-400 text-cyan-700' : 'bg-slate-50 border-slate-50 text-slate-400'}`}
+                    >
+                      <Zap size={14} /> 快速模式
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
