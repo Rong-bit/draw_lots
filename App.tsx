@@ -388,35 +388,6 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            {/* Drawing Ritual Section */}
-            {isDrawing && !settings.fastMode && (
-              <div className="bg-indigo-600 rounded-[2rem] p-10 text-white text-center relative overflow-hidden shadow-2xl shadow-indigo-200">
-                 <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
-                    <div className="flex animate-scrollHorizontal gap-20 py-4 opacity-50">
-                       {participants.slice(0, 10).map((p, i) => <span key={i} className="text-2xl font-black whitespace-nowrap">{p.name}</span>)}
-                    </div>
-                    <div className="flex animate-scrollHorizontalReverse gap-20 py-4 opacity-30 mt-10">
-                       {participants.slice(10, 20).map((p, i) => <span key={i} className="text-2xl font-black whitespace-nowrap">{p.name}</span>)}
-                    </div>
-                 </div>
-                 <div className="relative z-10 flex flex-col items-center">
-                    <p className="text-indigo-200 text-xs font-black uppercase tracking-[0.3em] mb-4">正在抽取獎項</p>
-                    <h3 className="text-3xl font-black mb-8 px-8 py-3 bg-white/10 rounded-2xl backdrop-blur-md">{activeDrawName}</h3>
-                    
-                    <div className="h-24 flex items-center justify-center">
-                       <span className="text-6xl md:text-7xl font-black tracking-tighter drop-shadow-2xl animate-pulse">
-                         {spinningName || 'Ready...'}
-                       </span>
-                    </div>
-                    
-                    <div className="mt-10 flex gap-2">
-                      <div className="w-2 h-2 rounded-full bg-white animate-bounce" style={{animationDelay: '0ms'}} />
-                      <div className="w-2 h-2 rounded-full bg-white animate-bounce" style={{animationDelay: '100ms'}} />
-                      <div className="w-2 h-2 rounded-full bg-white animate-bounce" style={{animationDelay: '200ms'}} />
-                    </div>
-                 </div>
-              </div>
-            )}
 
             {/* Results Display */}
             <div className="bg-white rounded-[2rem] p-8 border border-slate-100 shadow-sm min-h-[300px]">
@@ -604,6 +575,38 @@ const App: React.FC = () => {
               >
                 關閉
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Drawing Modal */}
+      {isDrawing && !settings.fastMode && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-indigo-600 rounded-[2.5rem] w-full max-w-3xl p-10 text-white text-center relative overflow-hidden shadow-2xl shadow-indigo-200 animate-modalScale">
+            <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
+              <div className="flex animate-scrollHorizontal gap-20 py-4 opacity-50">
+                {participants.slice(0, 10).map((p, i) => <span key={i} className="text-2xl font-black whitespace-nowrap">{p.name}</span>)}
+              </div>
+              <div className="flex animate-scrollHorizontalReverse gap-20 py-4 opacity-30 mt-10">
+                {participants.slice(10, 20).map((p, i) => <span key={i} className="text-2xl font-black whitespace-nowrap">{p.name}</span>)}
+              </div>
+            </div>
+            <div className="relative z-10 flex flex-col items-center">
+              <p className="text-indigo-200 text-xs font-black uppercase tracking-[0.3em] mb-4">正在抽取獎項</p>
+              <h3 className="text-3xl font-black mb-8 px-8 py-3 bg-white/10 rounded-2xl backdrop-blur-md">{activeDrawName}</h3>
+              
+              <div className="h-24 flex items-center justify-center">
+                <span className="text-6xl md:text-7xl font-black tracking-tighter drop-shadow-2xl animate-pulse">
+                  {spinningName || 'Ready...'}
+                </span>
+              </div>
+              
+              <div className="mt-10 flex gap-2">
+                <div className="w-2 h-2 rounded-full bg-white animate-bounce" style={{animationDelay: '0ms'}} />
+                <div className="w-2 h-2 rounded-full bg-white animate-bounce" style={{animationDelay: '100ms'}} />
+                <div className="w-2 h-2 rounded-full bg-white animate-bounce" style={{animationDelay: '200ms'}} />
+              </div>
             </div>
           </div>
         </div>
