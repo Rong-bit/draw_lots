@@ -21,7 +21,9 @@ import {
   AlertCircle,
   Eye,
   History,
-  Check
+  Check,
+  UserCheck,
+  UserPlus
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { 
@@ -268,7 +270,7 @@ const App: React.FC = () => {
         
         {/* Header: Theme Input & Controls */}
         <header className="flex flex-col md:flex-row items-center justify-between gap-6 bg-white p-6 md:p-8 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100">
-          <div className="flex-1 w-full">
+          <div className="flex-1 w-full text-center md:text-left">
             <input 
               type="text" 
               value={theme}
@@ -276,7 +278,7 @@ const App: React.FC = () => {
               className="text-2xl md:text-3xl font-black text-slate-800 bg-transparent border-none focus:ring-0 w-full hover:bg-slate-50 rounded-xl px-4 py-1 transition-all"
               placeholder="輸入抽獎活動主題..."
             />
-            <div className="flex items-center gap-2 mt-1 px-4">
+            <div className="flex items-center justify-center md:justify-start gap-2 mt-1 px-4">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
                 {results.length > 0 ? `已抽 ${results.length} / 共 ${allPrizeSlots.length} 名額` : '準備就緒 - 隨時可以開獎'}
@@ -315,10 +317,8 @@ const App: React.FC = () => {
           </div>
         </header>
 
-        {/* Main Workspace (Full Width) */}
+        {/* Main Workspace */}
         <main className="space-y-6">
-          
-          {/* Input Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Prize List */}
             <div className="bg-white rounded-[2rem] p-8 border border-slate-100 shadow-sm">
@@ -368,7 +368,7 @@ const App: React.FC = () => {
               />
               <div className="mt-4 flex flex-wrap gap-2">
                 <span className="px-2 py-1 bg-slate-100 rounded text-[10px] font-bold text-slate-400">名單上限：300,000 筆</span>
-                <button onClick={() => setParticipantInput('範例人員 A\n範例人員 B\n範例人員 C')} className="text-[10px] font-bold text-indigo-500 hover:underline">載入範例名單</button>
+                <button onClick={() => setParticipantInput('林宥嘉 0917xxx123\n陳美蓉 0922xxx456\n張志豪 0915xxx418\n黃靜怡 0942xxx872\n周柏宇 0952xxx163')} className="text-[10px] font-bold text-indigo-500 hover:underline">載入範例名單</button>
               </div>
             </div>
           </div>
@@ -387,7 +387,6 @@ const App: React.FC = () => {
                <div className="relative z-10 flex flex-col items-center">
                   <p className="text-indigo-200 text-xs font-black uppercase tracking-[0.3em] mb-4">正在抽取獎項</p>
                   <h3 className="text-3xl font-black mb-8 px-8 py-3 bg-white/10 rounded-2xl backdrop-blur-md">{activeDrawName}</h3>
-                  
                   <div className="h-24 flex items-center justify-center">
                      <span className="text-6xl md:text-7xl font-black tracking-tighter drop-shadow-2xl animate-pulse">
                        {spinningName || 'Ready...'}
@@ -411,7 +410,6 @@ const App: React.FC = () => {
                   </button>
                 )}
               </div>
-              
               <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
                 <button 
                   onClick={() => setSettings(s => ({...s, verticalResult: !s.verticalResult}))}
@@ -512,15 +510,13 @@ const App: React.FC = () => {
                   <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-1">中獎規則</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-3">
-                       <label className="flex items-center gap-3 p-4 rounded-2xl bg-slate-50 border-2 border-transparent cursor-pointer hover:border-indigo-200 transition-all group">
-                         <input 
-                           type="checkbox" 
-                           checked={settings.noDuplicate}
-                           onChange={e => setSettings(s => ({...s, noDuplicate: e.target.checked}))}
-                           className="w-5 h-5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                         />
-                         <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900">不得重複中獎</span>
-                       </label>
+                       <button 
+                         onClick={() => setSettings(s => ({...s, noDuplicate: true, allowMultiplePrizes: false}))}
+                         className={`flex items-center gap-3 p-4 w-full rounded-2xl border-2 transition-all group ${settings.noDuplicate ? 'bg-indigo-50 border-indigo-600 text-indigo-700' : 'bg-slate-50 border-transparent text-slate-500 hover:border-slate-200'}`}
+                       >
+                         <UserCheck size={20} className={settings.noDuplicate ? "text-indigo-600" : "text-slate-400"} />
+                         <span className="text-sm font-bold">不得重複中獎</span>
+                       </button>
                        
                        {settings.noDuplicate && (
                          <div className="pl-6 animate-slideIn">
@@ -529,23 +525,42 @@ const App: React.FC = () => {
                                type="checkbox" 
                                checked={settings.removeFromList}
                                onChange={e => setSettings(s => ({...s, removeFromList: e.target.checked}))}
-                               className="w-4 h-4 rounded border-slate-300 text-indigo-500"
+                               className="w-4 h-4 rounded border-slate-300 text-indigo-500 focus:ring-indigo-500"
                              />
-                             <span className="text-xs font-bold text-slate-400 group-hover:text-slate-600 transition-colors">抽中後從名單移除</span>
+                             <span className="text-xs font-bold text-slate-400 group-hover:text-slate-600 transition-colors">並從名單中移除中獎者</span>
                            </label>
                          </div>
                        )}
+
+                       <button 
+                         onClick={() => setSettings(s => ({...s, noDuplicate: false, allowMultiplePrizes: true, removeFromList: false}))}
+                         className={`flex items-center gap-3 p-4 w-full rounded-2xl border-2 transition-all group ${!settings.noDuplicate ? 'bg-indigo-50 border-indigo-600 text-indigo-700' : 'bg-slate-50 border-transparent text-slate-500 hover:border-slate-200'}`}
+                       >
+                         <UserPlus size={20} className={!settings.noDuplicate ? "text-indigo-600" : "text-slate-400"} />
+                         <span className="text-sm font-bold">允許獲得多種獎項</span>
+                       </button>
                     </div>
 
-                    <label className="flex items-center gap-3 p-4 rounded-2xl bg-slate-50 border-2 border-transparent cursor-pointer hover:border-indigo-200 transition-all group">
-                      <input 
-                        type="checkbox" 
-                        checked={settings.weightedProbability}
-                        onChange={e => setSettings(s => ({...s, weightedProbability: e.target.checked}))}
-                        className="w-5 h-5 rounded-lg border-slate-300 text-indigo-600"
-                      />
-                      <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900">名單重複次數即權重</span>
-                    </label>
+                    <div className="flex flex-col gap-3">
+                      <label className="flex items-center gap-3 p-4 rounded-2xl bg-slate-50 border-2 border-transparent cursor-pointer hover:border-indigo-200 transition-all group">
+                        <input 
+                          type="checkbox" 
+                          checked={settings.weightedProbability}
+                          onChange={e => setSettings(s => ({...s, weightedProbability: e.target.checked}))}
+                          className="w-5 h-5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900 leading-tight">重複次數越高，<br/>中獎機率越高 (權重)</span>
+                      </label>
+                      <label className="flex items-center gap-3 p-4 rounded-2xl bg-slate-50 border-2 border-transparent cursor-pointer hover:border-indigo-200 transition-all group">
+                        <input 
+                          type="checkbox" 
+                          checked={settings.showSerialNumber}
+                          onChange={e => setSettings(s => ({...s, showSerialNumber: e.target.checked}))}
+                          className="w-5 h-5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900">在結果中添加流水號</span>
+                      </label>
+                    </div>
                   </div>
                 </div>
 
@@ -557,19 +572,19 @@ const App: React.FC = () => {
                       onClick={() => setSettings(s => ({...s, soundEffect: s.soundEffect === SoundEffect.SOUND_1 ? SoundEffect.NONE : SoundEffect.SOUND_1}))}
                       className={`flex items-center justify-center gap-2 p-4 rounded-2xl border-2 transition-all font-bold text-sm ${settings.soundEffect === SoundEffect.SOUND_1 ? 'bg-amber-50 border-amber-400 text-amber-700' : 'bg-slate-50 border-slate-50 text-slate-400'}`}
                     >
-                      <Volume2 size={16} /> 音效 1
+                      <Volume2 size={16} /> 抽獎音效 1
                     </button>
                     <button 
                       onClick={() => setSettings(s => ({...s, soundEffect: s.soundEffect === SoundEffect.SOUND_2 ? SoundEffect.NONE : SoundEffect.SOUND_2}))}
                       className={`flex items-center justify-center gap-2 p-4 rounded-2xl border-2 transition-all font-bold text-sm ${settings.soundEffect === SoundEffect.SOUND_2 ? 'bg-amber-50 border-amber-400 text-amber-700' : 'bg-slate-50 border-slate-50 text-slate-400'}`}
                     >
-                      <Volume2 size={16} /> 音效 2
+                      <Volume2 size={16} /> 抽獎音效 2
                     </button>
                     <button 
                       onClick={() => setSettings(s => ({...s, showConfetti: !s.showConfetti}))}
                       className={`flex items-center justify-center gap-2 p-4 rounded-2xl border-2 transition-all font-bold text-sm ${settings.showConfetti ? 'bg-pink-50 border-pink-400 text-pink-700' : 'bg-slate-50 border-slate-50 text-slate-400'}`}
                     >
-                      <PartyPopper size={16} /> 彩帶動畫
+                      <PartyPopper size={16} /> 顯示彩帶動畫
                     </button>
                     <button 
                       onClick={() => setSettings(s => ({...s, fastMode: !s.fastMode}))}
@@ -659,7 +674,7 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Global CSS for Ritual Animations */}
+      {/* Global CSS */}
       <style>{`
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes modalScale { from { opacity: 0; transform: scale(0.9) translateY(40px); } to { opacity: 1; transform: scale(1) translateY(0); } }
@@ -670,12 +685,14 @@ const App: React.FC = () => {
           70% { transform: scale(1.05); }
           100% { opacity: 1; transform: scale(1) translateY(0); }
         }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         
         .animate-fadeIn { animation: fadeIn 0.3s ease-out forwards; }
         .animate-modalScale { animation: modalScale 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         .animate-scrollHorizontal { animation: scrollHorizontal 20s linear infinite; }
         .animate-scrollHorizontalReverse { animation: scrollHorizontalReverse 20s linear infinite; }
         .animate-drawPop { animation: drawPop 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .animate-slideIn { animation: slideIn 0.3s ease-out forwards; }
         
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }

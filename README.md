@@ -1,20 +1,43 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
 
-# Run and deploy your AI Studio app
+# 專業抽籤系統 Pro Lucky Draw
 
-This contains everything you need to run your app locally.
+這是一個基於 React 與 Tailwind CSS 開發的高級抽籤系統，具備優雅的 UI/UX 設計、豐富的自定義規則以及流暢的動畫效果。
 
-View your app in AI Studio: https://ai.studio/apps/drive/1zKWJdDHG_rfkeBiXXzVJYPeyb9lLOpUD
+## 🌟 核心特色
 
-## Run Locally
+- **多樣化抽獎模式**：支援「分次抽出」、「一次抽完」以及「倒序抽獎（從最小獎開始）」。
+- **精準中獎規則**：
+  - 支援「不得重複中獎」及「自動從名單移除中獎者」。
+  - 支援「權重抽獎」：名單中出現次數越多，中獎機率越高。
+- **極致視覺體驗**：
+  - 內建 Canvas-Confetti 彩帶噴發效果。
+  - 具備毛玻璃效果的設定視窗與結果視窗。
+  - 抽獎過程具備名單快速滾動的儀式感動畫。
+- **專業工具支援**：
+  - 支援從 `.txt` 或 `.csv` 匯入參加名單。
+  - 抽獎結果可一鍵匯出為 CSV 檔案。
+  - 支援多種提示音效。
 
-**Prerequisites:**  Node.js
+## 🚀 快速部署到 GitHub Pages
 
+本專案已配置好 GitHub Actions，您可以輕鬆完成部署：
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+1. **建立儲存庫**：在 GitHub 上新建一個 Repository。
+2. **上傳程式碼**：將本專案所有檔案上傳（Push）至 `main` 分支。
+3. **啟動 Pages**：
+   - 進入 GitHub 儲存庫的 `Settings` 頁面。
+   - 點擊左側選單的 `Pages`。
+   - 在 `Build and deployment` > `Source` 處，選擇 **GitHub Actions**。
+4. **完成**：GitHub Actions 會自動運行部署流程，完成後您即可透過 GitHub 提供的網址訪問您的抽籤系統。
+
+## 🛠 技術堆疊
+
+- **Framework**: React 19
+- **Styling**: Tailwind CSS
+- **Icons**: Lucide React
+- **Animations**: Framer Motion (CSS Keyframes) & Canvas Confetti
+- **Module Management**: ESM.sh with Import Maps (No-Build Setup)
+
+## 📝 授權條款
+
+本專案採用 MIT 授權條款。
