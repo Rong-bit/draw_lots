@@ -37,7 +37,7 @@ export const playSound = (type: SoundEffect, mp3Url?: string): void => {
       g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
       o.start();
       o.stop(ctx.currentTime + 0.3);
-    } else {
+    } else if (type === SoundEffect.SOUND_2) {
       // 傳統叮咚音
       const o1 = ctx.createOscillator();
       const o2 = ctx.createOscillator();
@@ -52,6 +52,7 @@ export const playSound = (type: SoundEffect, mp3Url?: string): void => {
       o1.start(); o2.start();
       o1.stop(ctx.currentTime + 0.5); o2.stop(ctx.currentTime + 0.5);
     }
+    // 如果type是NONE或其他值，不播放任何音效
   } catch (e) {
     console.error("Audio context error:", e);
   }
