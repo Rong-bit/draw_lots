@@ -13,7 +13,8 @@ export enum ResultDisplay {
 export enum SoundEffect {
   NONE = 'NONE',
   SOUND_1 = 'SOUND_1',
-  SOUND_2 = 'SOUND_2'
+  SOUND_2 = 'SOUND_2',
+  MP3 = 'MP3'
 }
 
 export interface Prize {
@@ -38,6 +39,7 @@ export interface DrawSettings {
   showSerialNumber: boolean;
   verticalResult: boolean;
   soundEffect: SoundEffect;
+  mp3SoundUrl?: string; // MP3音效文件的URL（blob URL）
   showConfetti: boolean;
   fastMode: boolean;
 }
