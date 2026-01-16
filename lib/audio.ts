@@ -1,15 +1,22 @@
 
+import { SoundEffect } from '../types';
+
 // 存储当前播放的音频对象，用于控制播放
 let currentAudio: HTMLAudioElement | null = null;
 let loopAudio: HTMLAudioElement | null = null;
 
-export const playSound = (type: 'SOUND_1' | 'SOUND_2' | 'MP3', mp3Url?: string): void => {
+export const playSound = (type: SoundEffect, mp3Url?: string): void => {
   try {
-    if (type === 'MP3' && mp3Url) {
+    if (type === SoundEffect.MP3 && mp3Url) {
       // 播放MP3文件
       const audio = new Audio(mp3Url);
       audio.volume = 0.7;
-      audio.play().catch(e => console.error("MP3播放错误:", e));
+      audio.play().catch(e => {
+        // 忽略AbortError和NotAllowedError，这些是正常的
+        if (e.name !== 'AbortError' && e.name !== 'NotAllowedError') {
+          console.error("MP3播放错误:", e);
+        }
+      });
       currentAudio = audio;
       return;
     }
@@ -17,7 +24,7 @@ export const playSound = (type: 'SOUND_1' | 'SOUND_2' | 'MP3', mp3Url?: string):
     // 原有的合成音效
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
     
-    if (type === 'SOUND_1') {
+    if (type === SoundEffect.SOUND_1) {
       // 科技感開獎音
       const o = ctx.createOscillator();
       const g = ctx.createGain();
@@ -53,11 +60,26 @@ export const playSound = (type: 'SOUND_1' | 'SOUND_2' | 'MP3', mp3Url?: string):
 // 循环播放MP3（用于抽奖过程中）
 export const playMp3Loop = (mp3Url: string): HTMLAudioElement | null => {
   try {
-    stopMp3Loop(); // 先停止之前的循环播放
+    // 先停止之前的循环播放
+    const previousAudio = loopAudio;
+    if (previousAudio) {
+      previousAudio.pause();
+      previousAudio.currentTime = 0;
+      loopAudio = null;
+    }
+    
     const audio = new Audio(mp3Url);
     audio.loop = true;
     audio.volume = 0.7;
-    audio.play().catch(e => console.error("MP3循环播放错误:", e));
+    
+    // 处理播放错误，忽略AbortError（这是正常的，当快速切换时会发生）
+    audio.play().catch(e => {
+      // 忽略AbortError，这是正常的（当音频被快速停止时）
+      if (e.name !== 'AbortError' && e.name !== 'NotAllowedError') {
+        console.error("MP3循环播放错误:", e);
+      }
+    });
+    
     loopAudio = audio;
     return audio;
   } catch (e) {
@@ -69,8 +91,12 @@ export const playMp3Loop = (mp3Url: string): HTMLAudioElement | null => {
 // 停止循环播放
 export const stopMp3Loop = () => {
   if (loopAudio) {
-    loopAudio.pause();
-    loopAudio.currentTime = 0;
+    try {
+      loopAudio.pause();
+      loopAudio.currentTime = 0;
+    } catch (e) {
+      // 忽略停止时的错误
+    }
     loopAudio = null;
   }
 };
