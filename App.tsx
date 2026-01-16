@@ -20,7 +20,8 @@ import {
   Download,
   AlertCircle,
   Eye,
-  History
+  History,
+  Shuffle
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { 
@@ -55,7 +56,7 @@ const App: React.FC = () => {
 
   // --- State ---
   const [theme, setTheme] = useState('專業抽籤系統 Pro Draw');
-  const [prizeInput, setPrizeInput] = useState('特獎 1\n頭獎 2\n貳獎 5');
+  const [prizeInput, setPrizeInput] = useState('特獎,1\n頭獎,2\n貳獎,5');
   const [participantInput, setParticipantInput] = useState('林宥嘉 0917xxx123\n陳美蓉 0922xxx456\n張志豪 0915xxx418\n黃靜怡 0942xxx872\n周柏宇 0952xxx163');
   const [results, setResults] = useState<DrawWinner[]>([]);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -81,11 +82,28 @@ const App: React.FC = () => {
   // --- Derived State ---
   const prizes = useMemo((): Prize[] => {
     return prizeInput.split('\n').filter(line => line.trim()).map((line, idx) => {
-      const parts = line.trim().split(/\s+/);
-      const lastPart = parts[parts.length - 1];
-      const count = parseInt(lastPart);
-      if (isNaN(count)) return { id: String(idx), name: line, count: 1 };
-      return { id: String(idx), name: parts.slice(0, -1).join(' '), count };
+      const trimmedLine = line.trim();
+      const commaIndex = trimmedLine.indexOf(',');
+      
+      if (commaIndex === -1) {
+        // 如果没有逗号，尝试兼容旧格式（空格分隔）
+        const parts = trimmedLine.split(/\s+/);
+        const lastPart = parts[parts.length - 1];
+        const count = parseInt(lastPart);
+        if (isNaN(count)) return { id: String(idx), name: trimmedLine, count: 1 };
+        return { id: String(idx), name: parts.slice(0, -1).join(' '), count };
+      }
+      
+      // 逗号分隔格式：名称,数量
+      const name = trimmedLine.substring(0, commaIndex).trim();
+      const countStr = trimmedLine.substring(commaIndex + 1).trim();
+      const count = parseInt(countStr);
+      
+      if (isNaN(count) || count < 1) {
+        return { id: String(idx), name: name || trimmedLine, count: 1 };
+      }
+      
+      return { id: String(idx), name, count };
     });
   }, [prizeInput]);
 
@@ -162,6 +180,20 @@ const App: React.FC = () => {
     setShowModal(false);
     setActiveDrawName('');
     setSpinningName('');
+  };
+
+  const handleShuffleParticipants = () => {
+    const lines = participantInput.split('\n').filter(line => line.trim());
+    if (lines.length === 0) return;
+    
+    // Fisher-Yates 洗牌算法
+    const shuffled = [...lines];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    
+    setParticipantInput(shuffled.join('\n'));
   };
 
   // --- Core Drawing Logic ---
@@ -352,11 +384,11 @@ const App: React.FC = () => {
                   onChange={e => setPrizeInput(e.target.value)}
                   disabled={results.length > 0}
                   className={`w-full h-48 mt-4 p-5 bg-slate-50 rounded-2xl border-none focus:ring-2 focus:ring-indigo-100 font-medium text-slate-700 text-sm leading-relaxed resize-none ${results.length > 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  placeholder="點此輸入獎項內容...&#10;範例：&#10;特獎 1&#10;頭獎 3"
+                  placeholder="點此輸入獎項內容...&#10;範例：&#10;特獎,1&#10;頭獎,3"
                 />
                 <div className="flex items-center gap-2 mt-4 p-3 bg-indigo-50/50 rounded-xl border border-indigo-100">
                   <Info size={14} className="text-indigo-500" />
-                  <p className="text-[11px] text-indigo-600/70 font-medium">抽獎開始後不可修改獎項。格式：[名稱] [數量]</p>
+                  <p className="text-[11px] text-indigo-600/70 font-medium">抽獎開始後不可修改獎項。格式：[名稱],[數量]</p>
                 </div>
               </div>
 
@@ -365,6 +397,13 @@ const App: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <SectionTitle icon={<Users size={18} />} title="參加名單" subtitle={`目前已加入 ${participants.length} 位`} />
                   <div className="flex gap-2">
+                    <button 
+                      onClick={handleShuffleParticipants}
+                      className="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-purple-600 hover:text-white transition-all shadow-sm"
+                      title="隨機排列名單"
+                    >
+                      <Shuffle size={16} />
+                    </button>
                     <button 
                       onClick={() => fileInputRef.current?.click()}
                       className="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
