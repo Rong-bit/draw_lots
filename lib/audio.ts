@@ -12,8 +12,11 @@ export const playSound = (type: SoundEffect, mp3Url?: string): void => {
       const audio = new Audio(mp3Url);
       audio.volume = 0.7;
       audio.play().catch(e => {
-        // 忽略AbortError和NotAllowedError，这些是正常的
-        if (e.name !== 'AbortError' && e.name !== 'NotAllowedError') {
+        // 忽略常见的正常错误
+        // AbortError: 当play()被pause()中断时发生（正常）
+        // NotAllowedError: 当用户未交互时尝试播放音频时发生（正常）
+        // NotSupportedError: 当文件格式不支持或文件找不到时发生（可能是路径问题，但不需要报错）
+        if (e.name !== 'AbortError' && e.name !== 'NotAllowedError' && e.name !== 'NotSupportedError') {
           console.error("MP3播放错误:", e);
         }
       });
@@ -73,15 +76,16 @@ export const playMp3Loop = (mp3Url: string): HTMLAudioElement | null => {
     audio.loop = true;
     audio.volume = 0.7;
     
-    // 处理播放错误，忽略AbortError（这是正常的，当快速切换时会发生）
+    // 处理播放错误，忽略常见的正常错误
     audio.play().catch(e => {
-      // 完全忽略AbortError和NotAllowedError，这些是正常的浏览器行为
-      // AbortError: 当play()被pause()中断时发生
-      // NotAllowedError: 当用户未交互时尝试播放音频时发生
-      if (e.name !== 'AbortError' && e.name !== 'NotAllowedError') {
+      // 完全忽略这些正常的浏览器行为错误：
+      // AbortError: 当play()被pause()中断时发生（正常）
+      // NotAllowedError: 当用户未交互时尝试播放音频时发生（正常）
+      // NotSupportedError: 当文件格式不支持或文件找不到时发生（可能是路径问题，但不需要报错）
+      if (e.name !== 'AbortError' && e.name !== 'NotAllowedError' && e.name !== 'NotSupportedError') {
         console.error("MP3循环播放错误:", e);
       }
-      // 静默处理AbortError，不输出任何信息
+      // 静默处理这些错误，不输出任何信息
     });
     
     loopAudio = audio;
