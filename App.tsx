@@ -308,6 +308,11 @@ const App: React.FC = () => {
 
     setIsDrawing(true);
     
+    // 按下抽獎按鈕時，如果選擇了MP3，開始循環播放
+    if (settings.soundEffect === SoundEffect.MP3 && settings.mp3SoundUrl) {
+      playMp3Loop(settings.mp3SoundUrl);
+    }
+    
     // 建立目前已中獎名單的 Set 用於排除
     const usedNames = new Set<string>();
     if (settings.noDuplicate) {
