@@ -75,10 +75,13 @@ export const playMp3Loop = (mp3Url: string): HTMLAudioElement | null => {
     
     // 处理播放错误，忽略AbortError（这是正常的，当快速切换时会发生）
     audio.play().catch(e => {
-      // 忽略AbortError，这是正常的（当音频被快速停止时）
+      // 完全忽略AbortError和NotAllowedError，这些是正常的浏览器行为
+      // AbortError: 当play()被pause()中断时发生
+      // NotAllowedError: 当用户未交互时尝试播放音频时发生
       if (e.name !== 'AbortError' && e.name !== 'NotAllowedError') {
         console.error("MP3循环播放错误:", e);
       }
+      // 静默处理AbortError，不输出任何信息
     });
     
     loopAudio = audio;
