@@ -224,7 +224,9 @@ const App: React.FC = () => {
 
   // 當 modal 消失時停止音效
   useEffect(() => {
+    console.log('🎯 [调试] isDrawing 状态变化:', isDrawing);
     if (!isDrawing) {
+      console.log('🎯 [调试] Modal 已消失，停止音效');
       stopModalSound();
     }
   }, [isDrawing]);
@@ -318,11 +320,18 @@ const App: React.FC = () => {
     const baseUrl = import.meta.env.BASE_URL || '/';
     const defaultMp3Url = `${baseUrl}14096.mp3`.replace(/\/\//g, '/');
     
+    console.log('🎯 [调试] 点击开始抽籤按钮');
+    console.log('🎯 [调试] BASE_URL:', baseUrl);
+    console.log('🎯 [调试] 音频文件路径:', defaultMp3Url);
+    console.log('🎯 [调试] 快速模式:', settings.fastMode);
+    
     // 立即播放 14096.mp3（在用戶交互時立即播放，確保與 modal 同步）
     if (!settings.fastMode) {
+      console.log('🎯 [调试] 准备播放 modal 音效');
       playModalSound(defaultMp3Url);
     }
     
+    console.log('🎯 [调试] 设置 isDrawing = true');
     setIsDrawing(true);
     
     // 按下抽獎按鈕時，如果選擇了MP3，開始循環播放
