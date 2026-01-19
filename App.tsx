@@ -560,26 +560,6 @@ const App: React.FC = () => {
               <RotateCcw size={24} />
             </button>
             <button 
-              onClick={() => {
-                // 测试音频播放
-                const baseUrl = import.meta.env.BASE_URL || '/';
-                const testMp3Url = `${baseUrl}14096.mp3`.replace(/\/\//g, '/');
-                const testAudio = new Audio(testMp3Url);
-                testAudio.volume = 1.0;
-                testAudio.play().then(() => {
-                  console.log('🎵 [测试] 音频测试播放成功');
-                  alert('如果能听到声音，说明音频播放正常！');
-                }).catch(e => {
-                  console.error('🎵 [测试] 音频测试播放失败:', e);
-                  alert('音频播放失败：' + e.message);
-                });
-              }}
-              className="px-6 py-2 bg-yellow-500 text-white rounded-xl font-bold text-sm hover:bg-yellow-600 transition-all"
-              title="测试音频播放"
-            >
-              测试音频
-            </button>
-            <button 
               onClick={handleDraw}
               disabled={isDrawing || remainingSlots.length === 0}
               className={`flex items-center gap-3 px-10 py-4 rounded-2xl font-black text-lg transition-all shadow-2xl active:scale-95 transform ${
@@ -939,14 +919,6 @@ const App: React.FC = () => {
       {isDrawing && !settings.fastMode && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-fadeIn">
           <div className="bg-indigo-600 rounded-[2.5rem] w-full max-w-3xl p-10 text-white text-center relative overflow-hidden shadow-2xl shadow-indigo-200 animate-modalScale">
-            <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
-              <div className="flex animate-scrollHorizontal gap-20 py-4 opacity-50">
-                {participants.slice(0, 10).map((p, i) => <span key={i} className="text-2xl font-black whitespace-nowrap">{p.name}</span>)}
-              </div>
-              <div className="flex animate-scrollHorizontalReverse gap-20 py-4 opacity-30 mt-10">
-                {participants.slice(10, 20).map((p, i) => <span key={i} className="text-2xl font-black whitespace-nowrap">{p.name}</span>)}
-              </div>
-            </div>
             <div className="relative z-10 flex flex-col items-center">
               <p className="text-indigo-200 text-xs font-black uppercase tracking-[0.3em] mb-4">正在抽取獎項</p>
               <h3 className="text-3xl font-black mb-8 px-8 py-3 bg-white/10 rounded-2xl backdrop-blur-md">{activeDrawName}</h3>
