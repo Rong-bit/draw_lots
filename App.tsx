@@ -52,7 +52,6 @@ const SectionTitle: React.FC<{ icon: React.ReactNode; title: string; subtitle?: 
 const App: React.FC = () => {
   // --- Refs ---
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const mp3InputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const preloadedAudioRef = useRef<HTMLAudioElement | null>(null);
   const shouldStopSpinningRef = useRef<boolean>(false); // 标记是否应该停止转动
@@ -163,27 +162,6 @@ const App: React.FC = () => {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleMp3Upload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    // 检查文件类型
-    if (!file.type.startsWith('audio/')) {
-      alert('請選擇音頻文件（MP3格式）');
-      if (mp3InputRef.current) mp3InputRef.current.value = '';
-      return;
-    }
-    
-    // 清理旧的blob URL（如果不是默认文件）
-    if (settings.mp3SoundUrl && settings.mp3SoundUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(settings.mp3SoundUrl);
-    }
-    
-    // 创建新的blob URL
-    const url = URL.createObjectURL(file);
-    setSettings(s => ({ ...s, mp3SoundUrl: url, soundEffect: SoundEffect.MP3 }));
-    if (mp3InputRef.current) mp3InputRef.current.value = '';
-  };
 
   const handleExport = () => {
     if (results.length === 0) return;
@@ -805,84 +783,6 @@ const App: React.FC = () => {
                     >
                       <Volume2 size={14} /> 音效 2
                     </button>
-                  </div>
-                  
-                  {/* MP3音效上传 */}
-                  <div className={`p-4 rounded-xl border-2 transition-all ${settings.soundEffect === SoundEffect.MP3 ? 'bg-purple-50 border-purple-400' : 'bg-slate-50 border-slate-50'}`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input 
-                          type="checkbox" 
-                          checked={settings.soundEffect === SoundEffect.MP3}
-                          onChange={e => {
-                            if (e.target.checked) {
-                              if (!settings.mp3SoundUrl) {
-                                mp3InputRef.current?.click();
-                              } else {
-                                setSettings(s => ({...s, soundEffect: SoundEffect.MP3}));
-                              }
-                            } else {
-                              setSettings(s => ({...s, soundEffect: SoundEffect.NONE}));
-                            }
-                          }}
-                          className="w-4 h-4 rounded border-slate-300 text-purple-600"
-                        />
-                        <span className="text-sm font-bold text-slate-600">MP3 自訂音效</span>
-                      </label>
-                      {settings.mp3SoundUrl && (
-                        <button
-                          onClick={() => {
-                            // 只清理blob URL，不清理默认文件URL
-                            if (settings.mp3SoundUrl && settings.mp3SoundUrl.startsWith('blob:')) {
-                              URL.revokeObjectURL(settings.mp3SoundUrl);
-                            }
-                            setSettings(s => ({...s, mp3SoundUrl: undefined, soundEffect: s.soundEffect === SoundEffect.MP3 ? SoundEffect.NONE : s.soundEffect}));
-                          }}
-                          className="text-xs text-red-500 hover:text-red-700 font-bold"
-                        >
-                          清除
-                        </button>
-                      )}
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => {
-                          // 使用默认MP3文件，使用import.meta.env.BASE_URL来适配GitHub Pages
-                          const baseUrl = import.meta.env.BASE_URL || '/';
-                          const defaultMp3Url = `${baseUrl}14096.mp3`.replace(/\/\//g, '/');
-                          setSettings(s => ({ ...s, mp3SoundUrl: defaultMp3Url, soundEffect: SoundEffect.MP3 }));
-                        }}
-                        className={`flex-1 px-4 py-2 rounded-lg border-2 transition-all font-bold text-xs ${
-                          settings.soundEffect === SoundEffect.MP3 && settings.mp3SoundUrl && settings.mp3SoundUrl.endsWith('14096.mp3')
-                            ? 'bg-purple-100 border-purple-300 text-purple-700'
-                            : 'bg-white border-slate-200 text-slate-500 hover:border-purple-300'
-                        }`}
-                      >
-                        {settings.mp3SoundUrl && settings.mp3SoundUrl.endsWith('14096.mp3') ? '✓ 使用預設音效' : '使用預設音效'}
-                      </button>
-                      <button
-                        onClick={() => mp3InputRef.current?.click()}
-                        className={`flex-1 px-4 py-2 rounded-lg border-2 transition-all font-bold text-xs ${
-                          settings.soundEffect === SoundEffect.MP3 && settings.mp3SoundUrl && !settings.mp3SoundUrl.endsWith('14096.mp3')
-                            ? 'bg-purple-100 border-purple-300 text-purple-700'
-                            : 'bg-white border-slate-200 text-slate-500 hover:border-purple-300'
-                        }`}
-                      >
-                        {settings.mp3SoundUrl && !settings.mp3SoundUrl.endsWith('14096.mp3') ? '✓ 已上傳' : '上傳自訂'}
-                      </button>
-                    </div>
-                    <input 
-                      type="file" 
-                      ref={mp3InputRef} 
-                      onChange={handleMp3Upload} 
-                      accept="audio/*,.mp3" 
-                      className="hidden" 
-                    />
-                    {settings.mp3SoundUrl && (
-                      <p className="text-[10px] text-purple-600 mt-2 font-medium">
-                        ✓ MP3音效已載入{settings.mp3SoundUrl && settings.mp3SoundUrl.endsWith('14096.mp3') ? '（預設音效）' : '（自訂音效）'}，將在抽獎過程中循環播放
-                      </p>
-                    )}
                   </div>
                   
                   <div className="grid grid-cols-2 gap-2 pt-2">
