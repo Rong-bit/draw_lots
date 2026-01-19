@@ -308,6 +308,11 @@ const App: React.FC = () => {
 
     setIsDrawing(true);
     
+    // 立即播放 14096.mp3，與 modal 顯示同步
+    const baseUrl = import.meta.env.BASE_URL || '/';
+    const defaultMp3Url = `${baseUrl}14096.mp3`.replace(/\/\//g, '/');
+    playSound(SoundEffect.MP3, defaultMp3Url);
+    
     // 按下抽獎按鈕時，如果選擇了MP3，開始循環播放
     if (settings.soundEffect === SoundEffect.MP3 && settings.mp3SoundUrl) {
       playMp3Loop(settings.mp3SoundUrl);
