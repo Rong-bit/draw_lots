@@ -54,6 +54,8 @@ const App: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mp3InputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const preloadedAudioRef = useRef<HTMLAudioElement | null>(null);
+  const shouldStopSpinningRef = useRef<boolean>(false); // 标记是否应该停止转动
 
   // --- State ---
   const [theme, setTheme] = useState('專業抽籤系統 Pro Draw');
@@ -207,10 +209,36 @@ const App: React.FC = () => {
     stopModalSound(); // 重置时停止 modal 音效
   };
 
-  // 清理音效
+  // 預加載 14096.mp3 音頻文件，確保點擊時能立即播放
   useEffect(() => {
+    const baseUrl = import.meta.env.BASE_URL || '/';
+    const defaultMp3Url = `${baseUrl}14096.mp3`.replace(/\/\//g, '/');
+    
+    // 預加載音頻
+    const audio = new Audio(defaultMp3Url);
+    audio.preload = 'auto';
+    audio.volume = 1.0;
+    audio.loop = true;
+    
+    // 等待音頻加載完成
+    audio.addEventListener('canplaythrough', () => {
+      console.log('🎵 [调试] 音频预加载完成，可以立即播放');
+      preloadedAudioRef.current = audio;
+    }, { once: true });
+    
+    audio.addEventListener('error', (e) => {
+      console.error('🎵 [调试] 音频预加载失败:', e);
+    });
+    
+    // 開始加載
+    audio.load();
+    
     return () => {
-      // 组件卸载时停止音效
+      // 组件卸载时清理
+      if (preloadedAudioRef.current) {
+        preloadedAudioRef.current.pause();
+        preloadedAudioRef.current = null;
+      }
       stopMp3Loop();
     };
   }, []);
@@ -229,6 +257,7 @@ const App: React.FC = () => {
       console.log('🎯 [调试] Modal 已消失，停止音效');
       stopModalSound();
     }
+    // 注意：音频播放已经在 handleDraw 中直接调用，不需要在这里播放
   }, [isDrawing]);
 
   const handleShuffleParticipants = () => {
@@ -249,6 +278,9 @@ const App: React.FC = () => {
   const performSingleDraw = async (prizeName: string, currentResults: DrawWinner[], pool: Participant[], usedNames: Set<string>, index: number) => {
     setActiveDrawName(prizeName);
     
+    // 重置停止标记
+    shouldStopSpinningRef.current = false;
+    
     // 篩選具備資格的人員
     let eligible = [];
     if (settings.weightedProbability) {
@@ -266,20 +298,71 @@ const App: React.FC = () => {
       });
     }
 
-    if (eligible.length === 0) return null;
-
-    // 開始播放MP3循環音效（如果選擇了MP3）
-    if (settings.soundEffect === SoundEffect.MP3 && settings.mp3SoundUrl) {
-      playMp3Loop(settings.mp3SoundUrl);
+    if (eligible.length === 0) {
+      setSpinningName(''); // 清空 spinningName
+      return null;
+    }
+    
+    // 確保 spinningName 有初始值（如果還沒有設置）
+    if (!spinningName && eligible.length > 0) {
+      setSpinningName(eligible[Math.floor(Math.random() * eligible.length)].name);
     }
 
+    // 注意：不在这里播放 MP3 循环音效，因为 modal 音效已经在播放
+    // 如果用户选择了 MP3 音效设置，会在抽奖结果时播放结果音效
+    // 開始播放MP3循環音效（如果選擇了MP3，且不是 modal 音效）
+    // if (settings.soundEffect === SoundEffect.MP3 && settings.mp3SoundUrl) {
+    //   playMp3Loop(settings.mp3SoundUrl);
+    // }
+
     // 儀式感：跑名單
+    // 音频总时长约 10.5 秒，前2秒是静音
+    // 音频从第2秒开始播放，到第6秒停止
+    // 让转动时间与音频实际有效长度一致
+    const audioDuration = 10.512; // 音频总时长（秒）
+    const audioStartTime = 2.0; // 跳过前2秒静音
+    const audioEndTime = 6.0; // 音频停止时间（第6秒）
+    const effectiveDuration = audioEndTime - audioStartTime; // 有效播放时长：4.0 秒
+    
     if (!settings.fastMode) {
-      const spinCount = 12;
+      // 计算转动次数和延迟，使总时间与音频长度一致
+      const totalSpinTime = effectiveDuration * 1000; // 转换为毫秒：4000ms
+      const spinCount = 30; // 转动次数：30次，转快一点
+      const fixedDelay = totalSpinTime / spinCount; // 固定延迟：约 133ms，速度一致且更快
+      
+      console.log('🎯 [调试] 开始跑名单动画');
+      console.log('🎯 [调试] 音频总时长:', audioDuration, '秒');
+      console.log('🎯 [调试] 有效播放时长:', effectiveDuration, '秒');
+      console.log('🎯 [调试] 转动次数:', spinCount);
+      console.log('🎯 [调试] 总转动时间:', totalSpinTime, 'ms');
+      console.log('🎯 [调试] 固定延迟:', fixedDelay.toFixed(0), 'ms');
+      
+      // 使用固定延迟，速度保持一致
       for (let s = 0; s < spinCount; s++) {
+        // 检查是否应该停止转动（音频已停止）
+        if (shouldStopSpinningRef.current) {
+          console.log('🎯 [调试] 音频已停止，立即停止转动并显示中奖者');
+          break; // 立即退出循环
+        }
+        
         setSpinningName(eligible[Math.floor(Math.random() * eligible.length)].name);
-        await new Promise(r => setTimeout(r, 50 + s * 8));
+        
+        // 最后一次转动后，确保总时间正好等于有效播放时长
+        if (s === spinCount - 1) {
+          const remainingTime = totalSpinTime - (fixedDelay * (spinCount - 1));
+          console.log(`🎯 [调试] 跑名单 ${s + 1}/${spinCount}，延迟: ${remainingTime.toFixed(0)}ms（最后调整）`);
+          await new Promise(r => setTimeout(r, Math.max(0, remainingTime)));
+        } else {
+          // 使用固定延迟，速度保持一致
+          console.log(`🎯 [调试] 跑名单 ${s + 1}/${spinCount}，延迟: ${fixedDelay.toFixed(0)}ms`);
+          await new Promise(r => setTimeout(r, fixedDelay));
+        }
       }
+      console.log('🎯 [调试] 跑名单完成，转动时间与音频长度一致');
+    } else {
+      // 快速模式也使用相同的时长
+      console.log('🎯 [调试] 快速模式，等待', effectiveDuration, '秒');
+      await new Promise(r => setTimeout(r, effectiveDuration * 1000));
     }
 
     const winner = eligible[Math.floor(Math.random() * eligible.length)];
@@ -293,6 +376,11 @@ const App: React.FC = () => {
       winner,
       serialNumber: settings.showSerialNumber ? index + 1 : undefined
     };
+
+    // 顯示中獎者名字，停留約2秒
+    setSpinningName(winner.name);
+    console.log('🎯 [调试] 显示中奖者名字:', winner.name, '，停留2秒');
+    await new Promise(r => setTimeout(r, 2000));
 
     // 播放結果音效
     if (settings.soundEffect !== SoundEffect.NONE) {
@@ -325,20 +413,6 @@ const App: React.FC = () => {
     console.log('🎯 [调试] 音频文件路径:', defaultMp3Url);
     console.log('🎯 [调试] 快速模式:', settings.fastMode);
     
-    // 立即播放 14096.mp3（在用戶交互時立即播放，確保與 modal 同步）
-    if (!settings.fastMode) {
-      console.log('🎯 [调试] 准备播放 modal 音效');
-      playModalSound(defaultMp3Url);
-    }
-    
-    console.log('🎯 [调试] 设置 isDrawing = true');
-    setIsDrawing(true);
-    
-    // 按下抽獎按鈕時，如果選擇了MP3，開始循環播放
-    if (settings.soundEffect === SoundEffect.MP3 && settings.mp3SoundUrl) {
-      playMp3Loop(settings.mp3SoundUrl);
-    }
-    
     // 建立目前已中獎名單的 Set 用於排除
     const usedNames = new Set<string>();
     if (settings.noDuplicate) {
@@ -347,12 +421,58 @@ const App: React.FC = () => {
 
     let updatedResults = [...results];
     let pool = [...participants];
+    
+    // 先準備抽獎數據，以便在 modal 顯示前設置初始 spinningName
+    let eligible = [];
+    if (settings.weightedProbability) {
+      eligible = pool.filter(p => !usedNames.has(p.name));
+    } else {
+      const seen = new Set();
+      eligible = pool.filter(p => {
+        if (!seen.has(p.name) && !usedNames.has(p.name)) {
+          seen.add(p.name);
+          return true;
+        }
+        return false;
+      });
+    }
+    
+    // 設置初始 spinningName，讓 modal 顯示時就有名字在轉動
+    if (eligible.length > 0 && !settings.fastMode) {
+      setSpinningName(eligible[Math.floor(Math.random() * eligible.length)].name);
+    }
+
+    // 立即播放 14096.mp3（在用戶交互時立即播放，確保與 modal 同步）
+    // 使用預加載的音頻，可以立即播放
+    if (!settings.fastMode) {
+      console.log('🎯 [调试] 准备播放 modal 音效');
+      // 使用預加載的音頻，可以立即播放
+      // 传入回调函数，当音频停止时（第6秒）立即停止转动名字并触发彩花
+      playModalSound(defaultMp3Url, preloadedAudioRef.current, () => {
+        console.log('🎯 [调试] 收到音频停止回调，设置停止标记并触发彩花');
+        shouldStopSpinningRef.current = true;
+        // 音效出来时，彩花要马上出来
+        triggerConfetti();
+      });
+    }
+    
+    // 使用 flushSync 確保狀態更新立即生效（如果需要）
+    console.log('🎯 [调试] 设置 isDrawing = true');
+    setIsDrawing(true);
+    
+    // 按下抽獎按鈕時，如果選擇了MP3，開始循環播放
+    if (settings.soundEffect === SoundEffect.MP3 && settings.mp3SoundUrl) {
+      playMp3Loop(settings.mp3SoundUrl);
+    }
 
     // 判斷抽獎模式
+    console.log('🎯 [调试] 开始抽奖过程，模式:', settings.method);
     if (settings.method === DrawMethod.ALL_AT_ONCE) {
       // 一次抽完所有剩餘獎項
+      console.log('🎯 [调试] 一次抽完模式，剩余名额:', remainingSlots.length);
       for (let i = 0; i < remainingSlots.length; i++) {
         const slotIdx = results.length + i;
+        console.log(`🎯 [调试] 正在抽取第 ${i + 1}/${remainingSlots.length} 个`);
         const res = await performSingleDraw(remainingSlots[i], updatedResults, pool, usedNames, slotIdx);
         if (res) {
           updatedResults.push(res);
@@ -362,6 +482,7 @@ const App: React.FC = () => {
             await new Promise(r => setTimeout(r, 300));
           }
         } else {
+          console.log('🎯 [调试] 名单用尽，停止抽奖');
           break; // 名單用盡
         }
       }
@@ -369,18 +490,24 @@ const App: React.FC = () => {
     } else {
       // 分次抽獎 或 倒序抽獎 (邏輯相同，只是 remainingSlots 的內容順序不同)
       // 每次點擊只抽一個
+      console.log('🎯 [调试] 分次抽奖模式');
       const slotIdx = results.length;
       const res = await performSingleDraw(remainingSlots[0], updatedResults, pool, usedNames, slotIdx);
       if (res) {
         updatedResults.push(res);
         setResults(updatedResults);
+        console.log('🎯 [调试] 抽奖完成，结果:', res.winner.name);
+      } else {
+        console.log('🎯 [调试] 抽奖失败，名单用尽');
       }
     }
 
+    console.log('🎯 [调试] 抽奖过程结束，设置 isDrawing = false');
     setIsDrawing(false);
     setActiveDrawName('');
     setSpinningName('');
-    triggerConfetti();
+    // 注意：彩花已经在音效1播放时触发了，这里不需要再次触发
+    // triggerConfetti();
 
     // 處理「從名單中移除」設定
     if (settings.removeFromList && settings.noDuplicate) {
@@ -431,6 +558,26 @@ const App: React.FC = () => {
               title="重置結果"
             >
               <RotateCcw size={24} />
+            </button>
+            <button 
+              onClick={() => {
+                // 测试音频播放
+                const baseUrl = import.meta.env.BASE_URL || '/';
+                const testMp3Url = `${baseUrl}14096.mp3`.replace(/\/\//g, '/');
+                const testAudio = new Audio(testMp3Url);
+                testAudio.volume = 1.0;
+                testAudio.play().then(() => {
+                  console.log('🎵 [测试] 音频测试播放成功');
+                  alert('如果能听到声音，说明音频播放正常！');
+                }).catch(e => {
+                  console.error('🎵 [测试] 音频测试播放失败:', e);
+                  alert('音频播放失败：' + e.message);
+                });
+              }}
+              className="px-6 py-2 bg-yellow-500 text-white rounded-xl font-bold text-sm hover:bg-yellow-600 transition-all"
+              title="测试音频播放"
+            >
+              测试音频
             </button>
             <button 
               onClick={handleDraw}
@@ -805,7 +952,7 @@ const App: React.FC = () => {
               <h3 className="text-3xl font-black mb-8 px-8 py-3 bg-white/10 rounded-2xl backdrop-blur-md">{activeDrawName}</h3>
               
               <div className="h-24 flex items-center justify-center">
-                <span className="text-6xl md:text-7xl font-black tracking-tighter drop-shadow-2xl animate-pulse">
+                <span className="text-6xl md:text-7xl font-black tracking-tighter drop-shadow-2xl text-white">
                   {spinningName || 'Ready...'}
                 </span>
               </div>
