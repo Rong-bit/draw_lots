@@ -125,8 +125,11 @@ let modalAudio: HTMLAudioElement | null = null;
 // 播放 modal 音效（用于抽奖 modal 显示时）
 export const playModalSound = (mp3Url: string): HTMLAudioElement | null => {
   try {
+    console.log('🎵 [调试] 开始播放 modal 音效:', mp3Url);
+    
     // 先停止之前的 modal 音效
     if (modalAudio) {
+      console.log('🎵 [调试] 停止之前的 modal 音效');
       modalAudio.pause();
       modalAudio.currentTime = 0;
       modalAudio = null;
@@ -134,16 +137,30 @@ export const playModalSound = (mp3Url: string): HTMLAudioElement | null => {
     
     const audio = new Audio(mp3Url);
     audio.volume = 0.7;
-    audio.play().catch(e => {
+    
+    // 添加事件监听器用于调试
+    audio.addEventListener('loadstart', () => console.log('🎵 [调试] 音频开始加载'));
+    audio.addEventListener('loadeddata', () => console.log('🎵 [调试] 音频数据已加载'));
+    audio.addEventListener('canplay', () => console.log('🎵 [调试] 音频可以播放'));
+    audio.addEventListener('play', () => console.log('🎵 [调试] 音频开始播放'));
+    audio.addEventListener('pause', () => console.log('🎵 [调试] 音频已暂停'));
+    audio.addEventListener('ended', () => console.log('🎵 [调试] 音频播放结束'));
+    audio.addEventListener('error', (e) => console.error('🎵 [调试] 音频播放错误:', e));
+    
+    audio.play().then(() => {
+      console.log('🎵 [调试] 音频播放成功');
+    }).catch(e => {
       if (e.name !== 'AbortError' && e.name !== 'NotAllowedError' && e.name !== 'NotSupportedError') {
-        console.error("Modal音效播放错误:", e);
+        console.error('🎵 [调试] Modal音效播放错误:', e);
+      } else {
+        console.warn('🎵 [调试] 音频播放被阻止（正常情况）:', e.name);
       }
     });
     
     modalAudio = audio;
     return audio;
   } catch (e) {
-    console.error("Modal音效播放错误:", e);
+    console.error('🎵 [调试] Modal音效播放错误:', e);
     return null;
   }
 };
@@ -151,12 +168,15 @@ export const playModalSound = (mp3Url: string): HTMLAudioElement | null => {
 // 停止 modal 音效
 export const stopModalSound = () => {
   if (modalAudio) {
+    console.log('🎵 [调试] 停止 modal 音效');
     try {
       modalAudio.pause();
       modalAudio.currentTime = 0;
     } catch (e) {
-      // 忽略停止时的错误
+      console.warn('🎵 [调试] 停止音效时出错:', e);
     }
     modalAudio = null;
+  } else {
+    console.log('🎵 [调试] 没有正在播放的 modal 音效');
   }
 };
