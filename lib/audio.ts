@@ -118,3 +118,45 @@ export const stopSound = () => {
   }
   stopMp3Loop();
 };
+
+// 存储 modal 音效的音频对象
+let modalAudio: HTMLAudioElement | null = null;
+
+// 播放 modal 音效（用于抽奖 modal 显示时）
+export const playModalSound = (mp3Url: string): HTMLAudioElement | null => {
+  try {
+    // 先停止之前的 modal 音效
+    if (modalAudio) {
+      modalAudio.pause();
+      modalAudio.currentTime = 0;
+      modalAudio = null;
+    }
+    
+    const audio = new Audio(mp3Url);
+    audio.volume = 0.7;
+    audio.play().catch(e => {
+      if (e.name !== 'AbortError' && e.name !== 'NotAllowedError' && e.name !== 'NotSupportedError') {
+        console.error("Modal音效播放错误:", e);
+      }
+    });
+    
+    modalAudio = audio;
+    return audio;
+  } catch (e) {
+    console.error("Modal音效播放错误:", e);
+    return null;
+  }
+};
+
+// 停止 modal 音效
+export const stopModalSound = () => {
+  if (modalAudio) {
+    try {
+      modalAudio.pause();
+      modalAudio.currentTime = 0;
+    } catch (e) {
+      // 忽略停止时的错误
+    }
+    modalAudio = null;
+  }
+};
