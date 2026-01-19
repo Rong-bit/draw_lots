@@ -33,7 +33,7 @@ import {
   DrawSettings, 
   DrawWinner 
 } from './types';
-import { playSound, playMp3Loop, stopMp3Loop } from './lib/audio';
+import { playSound, playMp3Loop, stopMp3Loop, playModalSound, stopModalSound } from './lib/audio';
 
 // --- Components ---
 
@@ -204,6 +204,7 @@ const App: React.FC = () => {
     setActiveDrawName('');
     setSpinningName('');
     stopMp3Loop(); // 重置时停止音效
+    stopModalSound(); // 重置时停止 modal 音效
   };
 
   // 清理音效
@@ -221,19 +222,12 @@ const App: React.FC = () => {
     }
   }, [showSettingsModal]);
 
-  // 當抽獎開始且 modal 顯示時，同步播放 14096.mp3
+  // 當 modal 消失時停止音效
   useEffect(() => {
-    if (isDrawing && !settings.fastMode) {
-      // 使用 requestAnimationFrame 確保 modal 渲染後再播放音頻，達到同步效果
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          const baseUrl = import.meta.env.BASE_URL || '/';
-          const defaultMp3Url = `${baseUrl}14096.mp3`.replace(/\/\//g, '/');
-          playSound(SoundEffect.MP3, defaultMp3Url);
-        });
-      });
+    if (!isDrawing) {
+      stopModalSound();
     }
-  }, [isDrawing, settings.fastMode]);
+  }, [isDrawing]);
 
   const handleShuffleParticipants = () => {
     const lines = participantInput.split('\n').filter(line => line.trim());
@@ -320,6 +314,15 @@ const App: React.FC = () => {
       return;
     }
 
+    // 確認播放的文件：public/14096.mp3（在 Vite 中會被複製到根目錄，路徑為 /14096.mp3）
+    const baseUrl = import.meta.env.BASE_URL || '/';
+    const defaultMp3Url = `${baseUrl}14096.mp3`.replace(/\/\//g, '/');
+    
+    // 立即播放 14096.mp3（在用戶交互時立即播放，確保與 modal 同步）
+    if (!settings.fastMode) {
+      playModalSound(defaultMp3Url);
+    }
+    
     setIsDrawing(true);
     
     // 按下抽獎按鈕時，如果選擇了MP3，開始循環播放
