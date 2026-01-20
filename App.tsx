@@ -368,7 +368,10 @@ const App: React.FC = () => {
     await new Promise(r => setTimeout(r, 2000));
 
     // 播放結果音效
+    // 添加小延遲確保音效能正常播放（避免與前一個音效衝突）
+    await new Promise(r => setTimeout(r, 100));
     if (settings.soundEffect !== SoundEffect.NONE) {
+      console.log('🎯 [调试] 播放结果音效，类型:', settings.soundEffect, '，MP3 URL:', settings.mp3SoundUrl);
       if (settings.soundEffect === SoundEffect.MP3 && settings.mp3SoundUrl) {
         playSound(settings.soundEffect, settings.mp3SoundUrl);
       } else {
