@@ -48,4 +48,5 @@ export interface DrawWinner {
   prizeName: string;
   winner: Participant;
   serialNumber?: number;
+  removed?: boolean; // 是否已移除（不在现场）
 }
