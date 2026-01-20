@@ -21,7 +21,8 @@ import {
   AlertCircle,
   Eye,
   History,
-  Shuffle
+  Shuffle,
+  UserX
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { 
@@ -132,8 +133,10 @@ const App: React.FC = () => {
   }, [prizes, settings.method]);
 
   const remainingSlots = useMemo(() => {
-    return allPrizeSlots.slice(results.length);
-  }, [allPrizeSlots, results.length]);
+    // 计算有效结果数量（排除已移除的得奖者）
+    const validResultsCount = results.filter(r => !r.removed).length;
+    return allPrizeSlots.slice(validResultsCount);
+  }, [allPrizeSlots, results]);
 
   // --- Helpers ---
   const triggerConfetti = () => {
@@ -167,8 +170,8 @@ const App: React.FC = () => {
   const handleExport = () => {
     if (results.length === 0) return;
     const BOM = '\uFEFF';
-    let csv = "流水號,獎項,中獎者\n" + results.map((r, i) => 
-      `${r.serialNumber || i + 1},"${r.prizeName}","${r.winner.name}"`
+    let csv = "流水號,獎項,中獎者,狀態\n" + results.map((r, i) => 
+      `${r.serialNumber || i + 1},"${r.prizeName}","${r.winner.name}","${r.removed ? '已移除（不在現場）' : '有效'}"`
     ).join("\n");
     const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -192,6 +195,18 @@ const App: React.FC = () => {
   const handleCloseModal = () => {
     setShowModal(false);
     // modal關閉時不清空currentDrawResults，保留顯示內容直到下次抽獎
+  };
+
+  // 移除得獎者資格（不在現場）
+  const handleRemoveWinner = (index: number) => {
+    const result = results[index];
+    if (!confirm(`確定要移除「${result.winner.name}」的得獎資格嗎？\n該名額將重新開放抽獎。`)) {
+      return;
+    }
+    
+    const updatedResults = [...results];
+    updatedResults[index].removed = true;
+    setResults(updatedResults);
   };
 
   // 預加載 14096.mp3 音頻文件，確保點擊時能立即播放
@@ -404,10 +419,10 @@ const App: React.FC = () => {
     console.log('🎯 [调试] 音频文件路径:', defaultMp3Url);
     console.log('🎯 [调试] 快速模式:', settings.fastMode);
     
-    // 建立目前已中獎名單的 Set 用於排除
+    // 建立目前已中獎名單的 Set 用於排除（排除已移除的得獎者）
     const usedNames = new Set<string>();
     if (settings.noDuplicate) {
-      results.forEach(r => usedNames.add(r.winner.name));
+      results.filter(r => !r.removed).forEach(r => usedNames.add(r.winner.name));
     }
 
     let updatedResults = [...results];
@@ -563,9 +578,9 @@ const App: React.FC = () => {
     // 注意：彩花已经在音效1播放时触发了，这里不需要再次触发
     // triggerConfetti();
 
-    // 處理「從名單中移除」設定
+    // 處理「從名單中移除」設定（排除已移除的得獎者）
     if (settings.removeFromList && settings.noDuplicate) {
-      const currentUsed = new Set(updatedResults.map(r => r.winner.name));
+      const currentUsed = new Set(updatedResults.filter(r => !r.removed).map(r => r.winner.name));
       const remainingRaw = participants.filter(p => !currentUsed.has(p.name)).map(p => p.raw).join('\n');
       setParticipantInput(remainingRaw);
     }
@@ -698,7 +713,7 @@ const App: React.FC = () => {
             <div className="bg-white rounded-[2rem] p-8 border border-slate-100 shadow-sm min-h-[300px]">
               <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                 <div className="flex items-center gap-4">
-                  <SectionTitle icon={<ListOrdered size={18} />} title="抽獎結果" subtitle={`已累計抽出 ${results.length} 個名額`} />
+                  <SectionTitle icon={<ListOrdered size={18} />} title="抽獎結果" subtitle={`已累計抽出 ${results.length} 個名額（有效：${results.filter(r => !r.removed).length} 個）`} />
                   {results.length > 0 && (
                     <button 
                       onClick={handleExport}
@@ -728,27 +743,56 @@ const App: React.FC = () => {
               {results.length > 0 ? (
                 <div className={`grid gap-4 ${settings.verticalResult ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
                   {/* 使用 reverse() 顯示結果，讓最新的中獎者在最上方，或照順序顯示 */}
-                  {([...results].reverse()).map((r, i) => (
-                    <div 
-                      key={`${r.winner.id}-${i}`} 
-                      className="group flex items-center justify-between p-6 bg-white border border-slate-100 rounded-3xl shadow-sm hover:border-indigo-200 hover:shadow-md transition-all animate-drawPop"
-                    >
-                      <div className="flex items-center gap-4">
-                        {settings.showSerialNumber && (
-                          <div className="w-8 h-8 flex items-center justify-center bg-slate-50 text-slate-400 rounded-lg text-[10px] font-black">
-                            #{r.serialNumber}
+                  {([...results].reverse()).map((r, i) => {
+                    const originalIndex = results.length - 1 - i; // 計算原始索引
+                    return (
+                      <div 
+                        key={`${r.winner.id}-${i}`} 
+                        className={`group flex items-center justify-between p-6 rounded-3xl shadow-sm hover:shadow-md transition-all animate-drawPop ${
+                          r.removed 
+                            ? 'bg-slate-50 border border-slate-200 opacity-60' 
+                            : 'bg-white border border-slate-100 hover:border-indigo-200'
+                        }`}
+                      >
+                        <div className="flex items-center gap-4 flex-1">
+                          {settings.showSerialNumber && (
+                            <div className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-black ${
+                              r.removed ? 'bg-slate-200 text-slate-400' : 'bg-slate-50 text-slate-400'
+                            }`}>
+                              #{r.serialNumber}
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${
+                              r.removed ? 'text-slate-400' : 'text-indigo-500'
+                            }`}>{r.prizeName}</p>
+                            <p className={`text-xl font-black tracking-tight ${
+                              r.removed ? 'text-slate-400 line-through' : 'text-slate-800'
+                            }`}>{r.winner.name}</p>
+                            {r.removed && (
+                              <p className="text-[10px] text-red-500 font-bold mt-1">已移除（不在現場）</p>
+                            )}
                           </div>
-                        )}
-                        <div>
-                          <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">{r.prizeName}</p>
-                          <p className="text-xl font-black text-slate-800 tracking-tight">{r.winner.name}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {!r.removed && (
+                            <button
+                              onClick={() => handleRemoveWinner(originalIndex)}
+                              className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                              title="移除資格（不在現場）"
+                            >
+                              <UserX size={18} />
+                            </button>
+                          )}
+                          <div className={`scale-100 transition-transform ${
+                            r.removed ? 'text-slate-300' : 'text-emerald-500'
+                          }`}>
+                            <CheckCircle2 size={24} />
+                          </div>
                         </div>
                       </div>
-                      <div className="text-emerald-500 scale-100 transition-transform">
-                        <CheckCircle2 size={24} />
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : !isDrawing && (
                 <div className="flex flex-col items-center justify-center py-20 text-slate-300">
@@ -942,23 +986,64 @@ const App: React.FC = () => {
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                        {/* 顯示本次抽出的所有結果 */}
-                       {currentDrawResults.map((r, i) => (
-                      <div key={`${r.winner.id}-${i}`} className="flex items-center justify-between p-6 bg-white border border-slate-100 rounded-3xl shadow-sm hover:shadow-md transition-all">
-                         <div className="flex items-center gap-5 flex-1">
-                            <div className="w-14 h-14 bg-indigo-50 flex items-center justify-center rounded-2xl text-2xl flex-shrink-0">
-                               🏆
-                            </div>
-                            <div className="flex-1 min-w-0">
-                               <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-1">{r.prizeName}</p>
-                               <p className="text-xl font-black text-slate-800 truncate">{r.winner.name}</p>
-                               {r.serialNumber && (
-                                 <p className="text-[10px] text-slate-400 mt-1">#{r.serialNumber}</p>
+                       {currentDrawResults.map((r, i) => {
+                         // 找到該結果在 results 中的索引
+                         const resultIndex = results.findIndex(result => 
+                           result.winner.id === r.winner.id && 
+                           result.prizeName === r.prizeName &&
+                           result.serialNumber === r.serialNumber
+                         );
+                         const isRemoved = resultIndex >= 0 && results[resultIndex]?.removed;
+                         
+                         return (
+                           <div 
+                             key={`${r.winner.id}-${i}`} 
+                             className={`group flex items-center justify-between p-6 rounded-3xl shadow-sm hover:shadow-md transition-all ${
+                               isRemoved 
+                                 ? 'bg-slate-50 border border-slate-200 opacity-60' 
+                                 : 'bg-white border border-slate-100'
+                             }`}
+                           >
+                             <div className="flex items-center gap-5 flex-1">
+                                <div className={`w-14 h-14 flex items-center justify-center rounded-2xl text-2xl flex-shrink-0 ${
+                                  isRemoved ? 'bg-slate-200' : 'bg-indigo-50'
+                                }`}>
+                                   🏆
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                   <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${
+                                     isRemoved ? 'text-slate-400' : 'text-indigo-600'
+                                   }`}>{r.prizeName}</p>
+                                   <p className={`text-xl font-black truncate ${
+                                     isRemoved ? 'text-slate-400 line-through' : 'text-slate-800'
+                                   }`}>{r.winner.name}</p>
+                                   {r.serialNumber && (
+                                     <p className="text-[10px] text-slate-400 mt-1">#{r.serialNumber}</p>
+                                   )}
+                                   {isRemoved && (
+                                     <p className="text-[10px] text-red-500 font-bold mt-1">已移除（不在現場）</p>
+                                   )}
+                                </div>
+                             </div>
+                             <div className="flex items-center gap-2">
+                               {!isRemoved && resultIndex >= 0 && (
+                                 <button
+                                   onClick={() => {
+                                     handleRemoveWinner(resultIndex);
+                                   }}
+                                   className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                   title="移除資格（不在現場）"
+                                 >
+                                   <UserX size={18} />
+                                 </button>
                                )}
-                            </div>
-                         </div>
-                         <CheckCircle2 className="text-emerald-500 flex-shrink-0" size={24} />
-                      </div>
-                       ))}
+                               <CheckCircle2 className={`flex-shrink-0 ${
+                                 isRemoved ? 'text-slate-300' : 'text-emerald-500'
+                               }`} size={24} />
+                             </div>
+                           </div>
+                         );
+                       })}
                     </div>
                     <div className="mt-6 p-4 bg-indigo-50 rounded-2xl flex items-center justify-center gap-2 text-indigo-600 border border-indigo-100">
                        <Trophy size={16} />
