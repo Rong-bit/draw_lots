@@ -437,7 +437,8 @@ const App: React.FC = () => {
 
     // 立即播放 14096.mp3（在用戶交互時立即播放，確保與 modal 同步）
     // 使用預加載的音頻，可以立即播放
-    if (!settings.fastMode) {
+    // 如果選擇視窗顯示模式，不播放 modal 音效，直接顯示結果
+    if (!settings.fastMode && settings.displayMode !== ResultDisplay.POPUP) {
       console.log('🎯 [调试] 准备播放 modal 音效');
       // 使用預加載的音頻，可以立即播放
       // 传入回调函数，当音频停止时（第6秒）立即停止转动名字并触发彩花
@@ -471,8 +472,8 @@ const App: React.FC = () => {
         const slotIdx = results.length + i;
         console.log(`🎯 [调试] 正在抽取第 ${i + 1}/${remainingSlots.length} 个`);
         
-        // 如果不是第一個，且非快速模式，播放 modal 音效（14096.mp3）
-        if (i > 0 && !settings.fastMode) {
+        // 如果不是第一個，且非快速模式，且不是視窗顯示模式，播放 modal 音效（14096.mp3）
+        if (i > 0 && !settings.fastMode && settings.displayMode !== ResultDisplay.POPUP) {
           console.log('🎯 [调试] 播放 modal 音效（后续抽奖）');
           const baseUrl = import.meta.env.BASE_URL || '/';
           const defaultMp3Url = `${baseUrl}14096.mp3`.replace(/\/\//g, '/');
@@ -518,8 +519,8 @@ const App: React.FC = () => {
         const slotIdx = results.length + i;
         console.log(`🎯 [调试] 正在抽取 ${currentPrizeName} 第 ${i + 1}/${prizeSlotCount} 个`);
         
-        // 如果不是第一個，且非快速模式，播放 modal 音效（14096.mp3）
-        if (i > 0 && !settings.fastMode) {
+        // 如果不是第一個，且非快速模式，且不是視窗顯示模式，播放 modal 音效（14096.mp3）
+        if (i > 0 && !settings.fastMode && settings.displayMode !== ResultDisplay.POPUP) {
           console.log('🎯 [调试] 播放 modal 音效（后续抽奖）');
           const baseUrl = import.meta.env.BASE_URL || '/';
           const defaultMp3Url = `${baseUrl}14096.mp3`.replace(/\/\//g, '/');
@@ -887,7 +888,7 @@ const App: React.FC = () => {
       )}
 
       {/* Drawing Modal */}
-      {isDrawing && !settings.fastMode && (
+      {isDrawing && !settings.fastMode && settings.displayMode !== ResultDisplay.POPUP && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-fadeIn">
           <div className="bg-indigo-600 rounded-[2.5rem] w-full max-w-3xl p-10 text-white text-center relative overflow-hidden shadow-2xl shadow-indigo-200 animate-modalScale">
             <div className="relative z-10 flex flex-col items-center">
