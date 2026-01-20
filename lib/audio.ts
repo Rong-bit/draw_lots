@@ -39,18 +39,19 @@ export const playSound = (type: SoundEffect, mp3Url?: string): void => {
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
     
     if (type === SoundEffect.SOUND_1) {
-      // 科技感開獎音
+      // 科技感開獎音 - 增強音量和持續時間，確保每次都能聽到
       const o = ctx.createOscillator();
       const g = ctx.createGain();
       o.connect(g);
       g.connect(ctx.destination);
       o.type = 'sine';
       o.frequency.setValueAtTime(400, ctx.currentTime);
-      o.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
-      g.gain.setValueAtTime(0.2, ctx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+      o.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.15);
+      // 增加音量和持續時間，確保每次都能聽到
+      g.gain.setValueAtTime(0.3, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.05, ctx.currentTime + 0.5);
       o.start();
-      o.stop(ctx.currentTime + 0.3);
+      o.stop(ctx.currentTime + 0.5);
     } else if (type === SoundEffect.SOUND_2) {
       // 傳統叮咚音
       const o1 = ctx.createOscillator();
