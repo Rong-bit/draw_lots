@@ -372,8 +372,13 @@ const App: React.FC = () => {
     await new Promise(r => setTimeout(r, 100));
     if (settings.soundEffect !== SoundEffect.NONE) {
       console.log('🎯 [调试] 播放结果音效，类型:', settings.soundEffect, '，MP3 URL:', settings.mp3SoundUrl);
-      if (settings.soundEffect === SoundEffect.MP3 && settings.mp3SoundUrl) {
-        playSound(settings.soundEffect, settings.mp3SoundUrl);
+      if (settings.soundEffect === SoundEffect.MP3) {
+        // 如果设置了MP3但没有URL，使用默认的14096.mp3
+        const mp3Url = settings.mp3SoundUrl || (() => {
+          const baseUrl = import.meta.env.BASE_URL || '/';
+          return `${baseUrl}14096.mp3`.replace(/\/\//g, '/');
+        })();
+        playSound(settings.soundEffect, mp3Url);
       } else {
         playSound(settings.soundEffect);
       }
