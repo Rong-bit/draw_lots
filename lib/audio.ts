@@ -8,6 +8,17 @@ let loopAudio: HTMLAudioElement | null = null;
 export const playSound = (type: SoundEffect, mp3Url?: string): void => {
   try {
     if (type === SoundEffect.MP3 && mp3Url) {
+      // 先停止之前正在播放的结果音效（但不停止modal音效）
+      if (currentAudio) {
+        try {
+          currentAudio.pause();
+          currentAudio.currentTime = 0;
+        } catch (e) {
+          // 忽略停止时的错误
+        }
+        currentAudio = null;
+      }
+      
       // 播放MP3文件
       const audio = new Audio(mp3Url);
       audio.volume = 0.7;
