@@ -245,14 +245,12 @@ export const playModalSound = (mp3Url: string, preloadedAudio?: HTMLAudioElement
       console.log('🎵 [调试] 音频播放结束');
     });
     audio.addEventListener('timeupdate', () => {
-      // 如果播放到第6秒，停止播放并播放音效1
+      // 如果播放到第6秒，停止播放（不播放音效，因为结果音效会在 performSingleDraw 中播放）
       if (audio.currentTime >= 6.0 && !audio.paused) {
         console.log('🎵 [调试] 音频播放到第6秒，停止播放');
         audio.pause();
         modalAudio = null;
-        // 播放音效1
-        console.log('🎵 [调试] 播放音效1');
-        playSound(SoundEffect.SOUND_1);
+        // 不在这里播放音效，因为结果音效会在 performSingleDraw 中播放，避免重复播放
         // 通知 App.tsx 音频已停止，应该停止转动名字
         if (onAudioStop) {
           console.log('🎵 [调试] 调用 onAudioStop 回调，通知停止转动');
