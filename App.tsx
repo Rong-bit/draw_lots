@@ -466,18 +466,39 @@ const App: React.FC = () => {
       }
       setResults(updatedResults);
     } else {
-      // 分次抽獎 或 倒序抽獎 (邏輯相同，只是 remainingSlots 的內容順序不同)
-      // 每次點擊只抽一個
-      console.log('🎯 [调试] 分次抽奖模式');
-      const slotIdx = results.length;
-      const res = await performSingleDraw(remainingSlots[0], updatedResults, pool, usedNames, slotIdx);
-      if (res) {
-        updatedResults.push(res);
-        setResults(updatedResults);
-        console.log('🎯 [调试] 抽奖完成，结果:', res.winner.name);
-      } else {
-        console.log('🎯 [调试] 抽奖失败，名单用尽');
+      // 分次抽獎 或 倒序抽獎：一次抽完當前獎項的所有名額
+      const currentPrizeName = remainingSlots[0];
+      // 計算該獎項在 remainingSlots 中連續出現的次數（即該獎項還剩多少個名額）
+      let prizeSlotCount = 0;
+      for (let i = 0; i < remainingSlots.length; i++) {
+        if (remainingSlots[i] === currentPrizeName) {
+          prizeSlotCount++;
+        } else {
+          break; // 遇到不同的獎項就停止計數
+        }
       }
+      
+      console.log('🎯 [调试] 分次抽奖模式，当前奖项:', currentPrizeName, '，剩余名额:', prizeSlotCount);
+      
+      // 一次抽完該獎項的所有名額
+      for (let i = 0; i < prizeSlotCount; i++) {
+        const slotIdx = results.length + i;
+        console.log(`🎯 [调试] 正在抽取 ${currentPrizeName} 第 ${i + 1}/${prizeSlotCount} 个`);
+        const res = await performSingleDraw(currentPrizeName, updatedResults, pool, usedNames, slotIdx);
+        if (res) {
+          updatedResults.push(res);
+          // 如果非快速模式，則每抽一個更新一次畫面以便看到進度
+          if (!settings.fastMode) {
+            setResults([...updatedResults]);
+            await new Promise(r => setTimeout(r, 300));
+          }
+        } else {
+          console.log('🎯 [调试] 名单用尽，停止抽奖');
+          break; // 名單用盡
+        }
+      }
+      setResults(updatedResults);
+      console.log('🎯 [调试] 抽奖完成，已抽完', prizeSlotCount, '个', currentPrizeName, '名额');
     }
 
     console.log('🎯 [调试] 抽奖过程结束，设置 isDrawing = false');
