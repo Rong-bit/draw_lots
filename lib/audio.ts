@@ -20,15 +20,20 @@ export const playSound = (type: SoundEffect, mp3Url?: string): void => {
       }
       
       // 播放MP3文件
+      console.log('🎵 [调试] 播放 MP3 音效，URL:', mp3Url);
       const audio = new Audio(mp3Url);
       audio.volume = 0.7;
-      audio.play().catch(e => {
+      audio.play().then(() => {
+        console.log('🎵 [调试] MP3 音效播放成功');
+      }).catch(e => {
         // 忽略常见的正常错误
         // AbortError: 当play()被pause()中断时发生（正常）
         // NotAllowedError: 当用户未交互时尝试播放音频时发生（正常）
         // NotSupportedError: 当文件格式不支持或文件找不到时发生（可能是路径问题，但不需要报错）
         if (e.name !== 'AbortError' && e.name !== 'NotAllowedError' && e.name !== 'NotSupportedError') {
           console.error("MP3播放错误:", e);
+        } else {
+          console.warn('🎵 [调试] MP3 播放被阻止:', e.name);
         }
       });
       currentAudio = audio;
@@ -39,21 +44,24 @@ export const playSound = (type: SoundEffect, mp3Url?: string): void => {
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
     
     if (type === SoundEffect.SOUND_1) {
-      // 科技感開獎音 - 增強音量和持續時間，確保每次都能聽到
+      // 科技感開獎音 - 大幅增強音量和持續時間，確保每次都能清楚聽到
+      console.log('🎵 [调试] 播放 SOUND_1 音效');
       const o = ctx.createOscillator();
       const g = ctx.createGain();
       o.connect(g);
       g.connect(ctx.destination);
       o.type = 'sine';
       o.frequency.setValueAtTime(400, ctx.currentTime);
-      o.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.15);
-      // 增加音量和持續時間，確保每次都能聽到
-      g.gain.setValueAtTime(0.3, ctx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.05, ctx.currentTime + 0.5);
+      o.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.2);
+      // 大幅增加音量和持續時間，確保每次都能清楚聽到
+      g.gain.setValueAtTime(0.5, ctx.currentTime); // 音量從 0.3 增加到 0.5
+      g.gain.exponentialRampToValueAtTime(0.1, ctx.currentTime + 0.8); // 持續時間從 0.5 秒增加到 0.8 秒
       o.start();
-      o.stop(ctx.currentTime + 0.5);
+      o.stop(ctx.currentTime + 0.8);
+      console.log('🎵 [调试] SOUND_1 音效已開始播放，持續時間: 0.8 秒');
     } else if (type === SoundEffect.SOUND_2) {
-      // 傳統叮咚音
+      // 傳統叮咚音 - 增強音量和持續時間
+      console.log('🎵 [调试] 播放 SOUND_2 音效');
       const o1 = ctx.createOscillator();
       const o2 = ctx.createOscillator();
       const g = ctx.createGain();
@@ -62,10 +70,11 @@ export const playSound = (type: SoundEffect, mp3Url?: string): void => {
       g.connect(ctx.destination);
       o1.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
       o2.frequency.setValueAtTime(659.25, ctx.currentTime); // E5
-      g.gain.setValueAtTime(0.1, ctx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+      g.gain.setValueAtTime(0.3, ctx.currentTime); // 音量從 0.1 增加到 0.3
+      g.gain.exponentialRampToValueAtTime(0.05, ctx.currentTime + 0.8); // 持續時間從 0.5 秒增加到 0.8 秒
       o1.start(); o2.start();
-      o1.stop(ctx.currentTime + 0.5); o2.stop(ctx.currentTime + 0.5);
+      o1.stop(ctx.currentTime + 0.8); o2.stop(ctx.currentTime + 0.8);
+      console.log('🎵 [调试] SOUND_2 音效已開始播放，持續時間: 0.8 秒');
     }
     // 如果type是NONE或其他值，不播放任何音效
   } catch (e) {
