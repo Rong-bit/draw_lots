@@ -315,9 +315,9 @@ const App: React.FC = () => {
     //   playMp3Loop(settings.mp3SoundUrl);
     // }
 
-    // 如果選擇視窗顯示模式，跳過動畫，直接抽獎
-    if (settings.displayMode === ResultDisplay.POPUP) {
-      console.log('🎯 [调试] 视窗显示模式，跳过动画，直接抽奖');
+    // 如果選擇快速模式，跳過動畫，直接抽獎
+    if (settings.fastMode) {
+      console.log('🎯 [调试] 快速模式，跳过动画，直接抽奖');
       // 直接抽獎，不等待
     } else {
       // 儀式感：跑名單
@@ -383,9 +383,9 @@ const App: React.FC = () => {
       serialNumber: settings.showSerialNumber ? index + 1 : undefined
     };
 
-    // 如果選擇視窗顯示模式，跳過顯示和音效，直接返回結果
-    if (settings.displayMode === ResultDisplay.POPUP) {
-      console.log('🎯 [调试] 视窗显示模式，跳过显示和音效');
+    // 如果選擇快速模式，跳過顯示和音效，直接返回結果
+    if (settings.fastMode) {
+      console.log('🎯 [调试] 快速模式，跳过显示和音效');
       // 不顯示名字，不播放音效，直接返回結果
     } else {
       // 顯示中獎者名字，停留約2秒
@@ -450,8 +450,8 @@ const App: React.FC = () => {
 
     // 立即播放 14096.mp3（在用戶交互時立即播放，確保與 modal 同步）
     // 使用預加載的音頻，可以立即播放
-    // 如果選擇視窗顯示模式，不播放 modal 音效，直接顯示結果
-    if (!settings.fastMode && settings.displayMode !== ResultDisplay.POPUP) {
+    // 快速模式時不播放 modal 音效，其他模式都播放
+    if (!settings.fastMode) {
       console.log('🎯 [调试] 准备播放 modal 音效');
       // 使用預加載的音頻，可以立即播放
       // 传入回调函数，当音频停止时（第6秒）立即停止转动名字并触发彩花
@@ -485,8 +485,8 @@ const App: React.FC = () => {
         const slotIdx = results.length + i;
         console.log(`🎯 [调试] 正在抽取第 ${i + 1}/${remainingSlots.length} 个`);
         
-        // 如果不是第一個，且非快速模式，且不是視窗顯示模式，播放 modal 音效（14096.mp3）
-        if (i > 0 && !settings.fastMode && settings.displayMode !== ResultDisplay.POPUP) {
+        // 如果不是第一個，且非快速模式，播放 modal 音效（14096.mp3）
+        if (i > 0 && !settings.fastMode) {
           console.log('🎯 [调试] 播放 modal 音效（后续抽奖）');
           const baseUrl = import.meta.env.BASE_URL || '/';
           const defaultMp3Url = `${baseUrl}14096.mp3`.replace(/\/\//g, '/');
@@ -501,8 +501,8 @@ const App: React.FC = () => {
         if (res) {
           updatedResults.push(res);
           newDrawResults.push(res); // 記錄本次新增的結果
-          // 如果是一次抽完模式且非快速模式且不是視窗顯示模式，則每抽一個更新一次畫面以便看到進度
-          if (!settings.fastMode && settings.displayMode !== ResultDisplay.POPUP) {
+          // 如果是一次抽完模式且非快速模式，則每抽一個更新一次畫面以便看到進度
+          if (!settings.fastMode) {
             setResults([...updatedResults]);
             await new Promise(r => setTimeout(r, 300));
           }
@@ -533,8 +533,8 @@ const App: React.FC = () => {
         const slotIdx = results.length + i;
         console.log(`🎯 [调试] 正在抽取 ${currentPrizeName} 第 ${i + 1}/${prizeSlotCount} 个`);
         
-        // 如果不是第一個，且非快速模式，且不是視窗顯示模式，播放 modal 音效（14096.mp3）
-        if (i > 0 && !settings.fastMode && settings.displayMode !== ResultDisplay.POPUP) {
+        // 如果不是第一個，且非快速模式，播放 modal 音效（14096.mp3）
+        if (i > 0 && !settings.fastMode) {
           console.log('🎯 [调试] 播放 modal 音效（后续抽奖）');
           const baseUrl = import.meta.env.BASE_URL || '/';
           const defaultMp3Url = `${baseUrl}14096.mp3`.replace(/\/\//g, '/');
@@ -549,8 +549,8 @@ const App: React.FC = () => {
         if (res) {
           updatedResults.push(res);
           newDrawResults.push(res); // 記錄本次新增的結果
-          // 如果非快速模式且不是視窗顯示模式，則每抽一個更新一次畫面以便看到進度
-          if (!settings.fastMode && settings.displayMode !== ResultDisplay.POPUP) {
+          // 如果非快速模式，則每抽一個更新一次畫面以便看到進度
+          if (!settings.fastMode) {
             setResults([...updatedResults]);
             await new Promise(r => setTimeout(r, 300));
           }
@@ -559,12 +559,7 @@ const App: React.FC = () => {
           break; // 名單用盡
         }
       }
-      // 如果是視窗顯示模式，等所有抽獎完成後一次性更新結果
-      if (settings.displayMode === ResultDisplay.POPUP) {
-        setResults(updatedResults);
-      } else {
-        setResults(updatedResults);
-      }
+      setResults(updatedResults);
       console.log('🎯 [调试] 抽奖完成，已抽完', prizeSlotCount, '个', currentPrizeName, '名额');
     }
     
@@ -936,7 +931,7 @@ const App: React.FC = () => {
       )}
 
       {/* Drawing Modal */}
-      {isDrawing && !settings.fastMode && settings.displayMode !== ResultDisplay.POPUP && (
+      {isDrawing && !settings.fastMode && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-fadeIn">
           <div className="bg-indigo-600 rounded-[2.5rem] w-full max-w-3xl p-10 text-white text-center relative overflow-hidden shadow-2xl shadow-indigo-200 animate-modalScale">
             <div className="relative z-10 flex flex-col items-center">
