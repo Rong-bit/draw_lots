@@ -46,19 +46,23 @@ export const playSound = (type: SoundEffect, mp3Url?: string): void => {
     if (type === SoundEffect.SOUND_1) {
       // 科技感開獎音 - 大幅增強音量和持續時間，確保每次都能清楚聽到
       console.log('🎵 [调试] 播放 SOUND_1 音效');
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.connect(g);
-      g.connect(ctx.destination);
-      o.type = 'sine';
-      o.frequency.setValueAtTime(400, ctx.currentTime);
-      o.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.2);
-      // 大幅增加音量和持續時間，確保每次都能清楚聽到
-      g.gain.setValueAtTime(0.5, ctx.currentTime); // 音量從 0.3 增加到 0.5
-      g.gain.exponentialRampToValueAtTime(0.1, ctx.currentTime + 0.8); // 持續時間從 0.5 秒增加到 0.8 秒
-      o.start();
-      o.stop(ctx.currentTime + 0.8);
-      console.log('🎵 [调试] SOUND_1 音效已開始播放，持續時間: 0.8 秒');
+      try {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g);
+        g.connect(ctx.destination);
+        o.type = 'sine';
+        o.frequency.setValueAtTime(400, ctx.currentTime);
+        o.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.2);
+        // 大幅增加音量和持續時間，確保每次都能清楚聽到
+        g.gain.setValueAtTime(0.5, ctx.currentTime); // 音量從 0.3 增加到 0.5
+        g.gain.exponentialRampToValueAtTime(0.1, ctx.currentTime + 0.8); // 持續時間從 0.5 秒增加到 0.8 秒
+        o.start();
+        o.stop(ctx.currentTime + 0.8);
+        console.log('🎵 [调试] SOUND_1 音效已開始播放，持續時間: 0.8 秒');
+      } catch (e) {
+        console.error('🎵 [调试] SOUND_1 音效播放失败:', e);
+      }
     } else if (type === SoundEffect.SOUND_2) {
       // 傳統叮咚音 - 增強音量和持續時間
       console.log('🎵 [调试] 播放 SOUND_2 音效');
@@ -245,12 +249,19 @@ export const playModalSound = (mp3Url: string, preloadedAudio?: HTMLAudioElement
       console.log('🎵 [调试] 音频播放结束');
     });
     audio.addEventListener('timeupdate', () => {
-      // 如果播放到第6秒，停止播放（不播放音效，因为结果音效会在 performSingleDraw 中播放）
+      // 如果播放到第6秒，停止播放并播放音效1
       if (audio.currentTime >= 6.0 && !audio.paused) {
         console.log('🎵 [调试] 音频播放到第6秒，停止播放');
         audio.pause();
         modalAudio = null;
-        // 不在这里播放音效，因为结果音效会在 performSingleDraw 中播放，避免重复播放
+        // 播放音效1
+        console.log('🎵 [调试] 准备播放音效1，调用 playSound');
+        try {
+          playSound(SoundEffect.SOUND_1);
+          console.log('🎵 [调试] playSound 调用完成');
+        } catch (e) {
+          console.error('🎵 [调试] 播放音效1失败:', e);
+        }
         // 通知 App.tsx 音频已停止，应该停止转动名字
         if (onAudioStop) {
           console.log('🎵 [调试] 调用 onAudioStop 回调，通知停止转动');
