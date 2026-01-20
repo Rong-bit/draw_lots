@@ -470,6 +470,19 @@ const App: React.FC = () => {
       for (let i = 0; i < remainingSlots.length; i++) {
         const slotIdx = results.length + i;
         console.log(`🎯 [调试] 正在抽取第 ${i + 1}/${remainingSlots.length} 个`);
+        
+        // 如果不是第一個，且非快速模式，播放 modal 音效（14096.mp3）
+        if (i > 0 && !settings.fastMode) {
+          console.log('🎯 [调试] 播放 modal 音效（后续抽奖）');
+          const baseUrl = import.meta.env.BASE_URL || '/';
+          const defaultMp3Url = `${baseUrl}14096.mp3`.replace(/\/\//g, '/');
+          playModalSound(defaultMp3Url, preloadedAudioRef.current, () => {
+            console.log('🎯 [调试] 收到音频停止回调，设置停止标记并触发彩花');
+            shouldStopSpinningRef.current = true;
+            triggerConfetti();
+          });
+        }
+        
         const res = await performSingleDraw(remainingSlots[i], updatedResults, pool, usedNames, slotIdx);
         if (res) {
           updatedResults.push(res);
@@ -504,6 +517,19 @@ const App: React.FC = () => {
       for (let i = 0; i < prizeSlotCount; i++) {
         const slotIdx = results.length + i;
         console.log(`🎯 [调试] 正在抽取 ${currentPrizeName} 第 ${i + 1}/${prizeSlotCount} 个`);
+        
+        // 如果不是第一個，且非快速模式，播放 modal 音效（14096.mp3）
+        if (i > 0 && !settings.fastMode) {
+          console.log('🎯 [调试] 播放 modal 音效（后续抽奖）');
+          const baseUrl = import.meta.env.BASE_URL || '/';
+          const defaultMp3Url = `${baseUrl}14096.mp3`.replace(/\/\//g, '/');
+          playModalSound(defaultMp3Url, preloadedAudioRef.current, () => {
+            console.log('🎯 [调试] 收到音频停止回调，设置停止标记并触发彩花');
+            shouldStopSpinningRef.current = true;
+            triggerConfetti();
+          });
+        }
+        
         const res = await performSingleDraw(currentPrizeName, updatedResults, pool, usedNames, slotIdx);
         if (res) {
           updatedResults.push(res);
