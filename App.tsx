@@ -66,6 +66,7 @@ const App: React.FC = () => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [activeDrawName, setActiveDrawName] = useState<string>('');
   const [spinningName, setSpinningName] = useState<string>('');
+  const [currentDrawResults, setCurrentDrawResults] = useState<DrawWinner[]>([]); // 本次抽出的結果
 
   const [settings, setSettings] = useState<DrawSettings>({
     method: DrawMethod.STEP_BY_STEP,
@@ -180,11 +181,17 @@ const App: React.FC = () => {
   const handleReset = () => {
     if (results.length > 0 && !confirm('確定要清除目前所有中獎結果嗎？')) return;
     setResults([]);
+    setCurrentDrawResults([]); // 重置本次抽出的結果
     setShowModal(false);
     setActiveDrawName('');
     setSpinningName('');
     stopMp3Loop(); // 重置时停止音效
     stopModalSound(); // 重置时停止 modal 音效
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    // modal關閉時不清空currentDrawResults，保留顯示內容直到下次抽獎
   };
 
   // 預加載 14096.mp3 音頻文件，確保點擊時能立即播放
@@ -443,6 +450,10 @@ const App: React.FC = () => {
       playMp3Loop(settings.mp3SoundUrl);
     }
 
+    // 記錄抽獎開始時的結果數量，用於追蹤本次新增的結果
+    const resultsCountBeforeDraw = results.length;
+    const newDrawResults: DrawWinner[] = [];
+    
     // 判斷抽獎模式
     console.log('🎯 [调试] 开始抽奖过程，模式:', settings.method);
     if (settings.method === DrawMethod.ALL_AT_ONCE) {
@@ -454,6 +465,7 @@ const App: React.FC = () => {
         const res = await performSingleDraw(remainingSlots[i], updatedResults, pool, usedNames, slotIdx);
         if (res) {
           updatedResults.push(res);
+          newDrawResults.push(res); // 記錄本次新增的結果
           // 如果是一次抽完模式且非快速模式，則每抽一個更新一次畫面以便看到進度
           if (!settings.fastMode) {
             setResults([...updatedResults]);
@@ -487,6 +499,7 @@ const App: React.FC = () => {
         const res = await performSingleDraw(currentPrizeName, updatedResults, pool, usedNames, slotIdx);
         if (res) {
           updatedResults.push(res);
+          newDrawResults.push(res); // 記錄本次新增的結果
           // 如果非快速模式，則每抽一個更新一次畫面以便看到進度
           if (!settings.fastMode) {
             setResults([...updatedResults]);
@@ -500,6 +513,9 @@ const App: React.FC = () => {
       setResults(updatedResults);
       console.log('🎯 [调试] 抽奖完成，已抽完', prizeSlotCount, '个', currentPrizeName, '名额');
     }
+    
+    // 保存本次抽出的結果，用於modal顯示
+    setCurrentDrawResults(newDrawResults);
 
     console.log('🎯 [调试] 抽奖过程结束，设置 isDrawing = false');
     setIsDrawing(false);
@@ -515,8 +531,8 @@ const App: React.FC = () => {
       setParticipantInput(remainingRaw);
     }
 
-    // 彈窗顯示
-    if (settings.displayMode === ResultDisplay.POPUP && updatedResults.length > results.length) {
+    // 彈窗顯示：如果有新增結果且設定了彈窗模式，則顯示modal
+    if (settings.displayMode === ResultDisplay.POPUP && newDrawResults.length > 0) {
       setShowModal(true);
     }
   }, [participants, results, remainingSlots, settings]);
@@ -876,35 +892,49 @@ const App: React.FC = () => {
                     </h2>
                     <p className="text-indigo-100 font-bold ml-16">恭喜以下幸運兒中獎：</p>
                   </div>
-                  <button onClick={() => setShowModal(false)} className="p-3 bg-white/10 rounded-2xl hover:bg-white/20 transition-all">
+                  <button onClick={handleCloseModal} className="p-3 bg-white/10 rounded-2xl hover:bg-white/20 transition-all">
                     <X size={24} />
                   </button>
                 </div>
              </div>
              
              <div className="flex-1 overflow-y-auto p-8 md:p-12 bg-slate-50/50">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                   {/* 這裡只顯示最後一次抽出的結果，讓用戶專注於當前中獎者 */}
-                   {(settings.method === DrawMethod.ALL_AT_ONCE ? results : [results[results.length - 1]]).map((r, i) => (
-                      <div key={i} className="flex items-center justify-between p-6 bg-white border border-slate-100 rounded-3xl shadow-sm">
-                         <div className="flex items-center gap-5">
-                            <div className="w-14 h-14 bg-indigo-50 flex items-center justify-center rounded-2xl text-2xl">
+                {currentDrawResults.length > 0 ? (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                       {/* 顯示本次抽出的所有結果 */}
+                       {currentDrawResults.map((r, i) => (
+                      <div key={`${r.winner.id}-${i}`} className="flex items-center justify-between p-6 bg-white border border-slate-100 rounded-3xl shadow-sm hover:shadow-md transition-all">
+                         <div className="flex items-center gap-5 flex-1">
+                            <div className="w-14 h-14 bg-indigo-50 flex items-center justify-center rounded-2xl text-2xl flex-shrink-0">
                                🏆
                             </div>
-                            <div>
+                            <div className="flex-1 min-w-0">
                                <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-1">{r.prizeName}</p>
-                               <p className="text-2xl font-black text-slate-800">{r.winner.name}</p>
+                               <p className="text-xl font-black text-slate-800 truncate">{r.winner.name}</p>
+                               {r.serialNumber && (
+                                 <p className="text-[10px] text-slate-400 mt-1">#{r.serialNumber}</p>
+                               )}
                             </div>
                          </div>
-                         <CheckCircle2 className="text-emerald-500" size={24} />
+                         <CheckCircle2 className="text-emerald-500 flex-shrink-0" size={24} />
                       </div>
-                   ))}
-                </div>
-                {results.length > 1 && settings.method !== DrawMethod.ALL_AT_ONCE && (
-                   <div className="mt-6 p-4 bg-slate-100 rounded-2xl flex items-center justify-center gap-2 text-slate-400">
-                      <History size={14} />
-                      <p className="text-xs font-bold uppercase tracking-widest">目前累計共 {results.length} 位中獎者</p>
-                   </div>
+                       ))}
+                    </div>
+                    <div className="mt-6 p-4 bg-indigo-50 rounded-2xl flex items-center justify-center gap-2 text-indigo-600 border border-indigo-100">
+                       <Trophy size={16} />
+                       <p className="text-xs font-black uppercase tracking-widest">
+                         本次共抽出 {currentDrawResults.length} 位得獎者 | 累計共 {results.length} 位中獎者
+                       </p>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-20 text-slate-300">
+                     <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                        <Sparkles size={32} className="opacity-20" />
+                     </div>
+                     <p className="text-xs font-black uppercase tracking-widest">暫無結果</p>
+                  </div>
                 )}
              </div>
              
@@ -916,7 +946,7 @@ const App: React.FC = () => {
                   <Download size={20} /> 匯出全部結果
                 </button>
                 <button 
-                  onClick={() => setShowModal(false)}
+                  onClick={handleCloseModal}
                   className="px-12 py-4 bg-indigo-600 text-white rounded-2xl font-black hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100"
                 >
                   關閉視窗
