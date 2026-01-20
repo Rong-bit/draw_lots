@@ -378,22 +378,8 @@ const App: React.FC = () => {
       console.log('🎯 [调试] 显示中奖者名字:', winner.name, '，停留2秒');
       await new Promise(r => setTimeout(r, 2000));
 
-      // 播放結果音效
-      // 添加小延遲確保音效能正常播放（避免與前一個音效衝突）
-      await new Promise(r => setTimeout(r, 100));
-      if (settings.soundEffect !== SoundEffect.NONE) {
-      console.log('🎯 [调试] 播放结果音效，类型:', settings.soundEffect, '，MP3 URL:', settings.mp3SoundUrl);
-      if (settings.soundEffect === SoundEffect.MP3) {
-        // 如果设置了MP3但没有URL，使用默认的14096.mp3
-        const mp3Url = settings.mp3SoundUrl || (() => {
-          const baseUrl = import.meta.env.BASE_URL || '/';
-          return `${baseUrl}14096.mp3`.replace(/\/\//g, '/');
-        })();
-        playSound(settings.soundEffect, mp3Url);
-      } else {
-          playSound(settings.soundEffect);
-        }
-      }
+      // 移除結果音效，因為 modal 音效停止時已經播放了 SOUND_1
+      // 避免重複播放音效
     }
     
     return result;
