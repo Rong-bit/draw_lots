@@ -300,16 +300,21 @@ const App: React.FC = () => {
     //   playMp3Loop(settings.mp3SoundUrl);
     // }
 
-    // 儀式感：跑名單
-    // 音频总时长约 10.5 秒，前2秒是静音
-    // 音频从第2秒开始播放，到第6秒停止
-    // 让转动时间与音频实际有效长度一致
-    const audioDuration = 10.512; // 音频总时长（秒）
-    const audioStartTime = 2.0; // 跳过前2秒静音
-    const audioEndTime = 6.0; // 音频停止时间（第6秒）
-    const effectiveDuration = audioEndTime - audioStartTime; // 有效播放时长：4.0 秒
-    
-    if (!settings.fastMode) {
+    // 如果選擇視窗顯示模式，跳過動畫，直接抽獎
+    if (settings.displayMode === ResultDisplay.POPUP) {
+      console.log('🎯 [调试] 视窗显示模式，跳过动画，直接抽奖');
+      // 直接抽獎，不等待
+    } else {
+      // 儀式感：跑名單
+      // 音频总时长约 10.5 秒，前2秒是静音
+      // 音频从第2秒开始播放，到第6秒停止
+      // 让转动时间与音频实际有效长度一致
+      const audioDuration = 10.512; // 音频总时长（秒）
+      const audioStartTime = 2.0; // 跳过前2秒静音
+      const audioEndTime = 6.0; // 音频停止时间（第6秒）
+      const effectiveDuration = audioEndTime - audioStartTime; // 有效播放时长：4.0 秒
+      
+      if (!settings.fastMode) {
       // 计算转动次数和延迟，使总时间与音频长度一致
       const totalSpinTime = effectiveDuration * 1000; // 转换为毫秒：4000ms
       const spinCount = 30; // 转动次数：30次，转快一点
@@ -343,11 +348,12 @@ const App: React.FC = () => {
           await new Promise(r => setTimeout(r, fixedDelay));
         }
       }
-      console.log('🎯 [调试] 跑名单完成，转动时间与音频长度一致');
-    } else {
-      // 快速模式也使用相同的时长
-      console.log('🎯 [调试] 快速模式，等待', effectiveDuration, '秒');
-      await new Promise(r => setTimeout(r, effectiveDuration * 1000));
+        console.log('🎯 [调试] 跑名单完成，转动时间与音频长度一致');
+      } else {
+        // 快速模式也使用相同的时长
+        console.log('🎯 [调试] 快速模式，等待', effectiveDuration, '秒');
+        await new Promise(r => setTimeout(r, effectiveDuration * 1000));
+      }
     }
 
     const winner = eligible[Math.floor(Math.random() * eligible.length)];
@@ -362,15 +368,20 @@ const App: React.FC = () => {
       serialNumber: settings.showSerialNumber ? index + 1 : undefined
     };
 
-    // 顯示中獎者名字，停留約2秒
-    setSpinningName(winner.name);
-    console.log('🎯 [调试] 显示中奖者名字:', winner.name, '，停留2秒');
-    await new Promise(r => setTimeout(r, 2000));
+    // 如果選擇視窗顯示模式，跳過顯示和音效，直接返回結果
+    if (settings.displayMode === ResultDisplay.POPUP) {
+      console.log('🎯 [调试] 视窗显示模式，跳过显示和音效');
+      // 不顯示名字，不播放音效，直接返回結果
+    } else {
+      // 顯示中獎者名字，停留約2秒
+      setSpinningName(winner.name);
+      console.log('🎯 [调试] 显示中奖者名字:', winner.name, '，停留2秒');
+      await new Promise(r => setTimeout(r, 2000));
 
-    // 播放結果音效
-    // 添加小延遲確保音效能正常播放（避免與前一個音效衝突）
-    await new Promise(r => setTimeout(r, 100));
-    if (settings.soundEffect !== SoundEffect.NONE) {
+      // 播放結果音效
+      // 添加小延遲確保音效能正常播放（避免與前一個音效衝突）
+      await new Promise(r => setTimeout(r, 100));
+      if (settings.soundEffect !== SoundEffect.NONE) {
       console.log('🎯 [调试] 播放结果音效，类型:', settings.soundEffect, '，MP3 URL:', settings.mp3SoundUrl);
       if (settings.soundEffect === SoundEffect.MP3) {
         // 如果设置了MP3但没有URL，使用默认的14096.mp3
@@ -380,7 +391,8 @@ const App: React.FC = () => {
         })();
         playSound(settings.soundEffect, mp3Url);
       } else {
-        playSound(settings.soundEffect);
+          playSound(settings.soundEffect);
+        }
       }
     }
     
@@ -488,8 +500,8 @@ const App: React.FC = () => {
         if (res) {
           updatedResults.push(res);
           newDrawResults.push(res); // 記錄本次新增的結果
-          // 如果是一次抽完模式且非快速模式，則每抽一個更新一次畫面以便看到進度
-          if (!settings.fastMode) {
+          // 如果是一次抽完模式且非快速模式且不是視窗顯示模式，則每抽一個更新一次畫面以便看到進度
+          if (!settings.fastMode && settings.displayMode !== ResultDisplay.POPUP) {
             setResults([...updatedResults]);
             await new Promise(r => setTimeout(r, 300));
           }
@@ -498,6 +510,7 @@ const App: React.FC = () => {
           break; // 名單用盡
         }
       }
+      // 如果是視窗顯示模式，等所有抽獎完成後一次性更新結果
       setResults(updatedResults);
     } else {
       // 分次抽獎 或 倒序抽獎：一次抽完當前獎項的所有名額
@@ -535,8 +548,8 @@ const App: React.FC = () => {
         if (res) {
           updatedResults.push(res);
           newDrawResults.push(res); // 記錄本次新增的結果
-          // 如果非快速模式，則每抽一個更新一次畫面以便看到進度
-          if (!settings.fastMode) {
+          // 如果非快速模式且不是視窗顯示模式，則每抽一個更新一次畫面以便看到進度
+          if (!settings.fastMode && settings.displayMode !== ResultDisplay.POPUP) {
             setResults([...updatedResults]);
             await new Promise(r => setTimeout(r, 300));
           }
@@ -545,7 +558,12 @@ const App: React.FC = () => {
           break; // 名單用盡
         }
       }
-      setResults(updatedResults);
+      // 如果是視窗顯示模式，等所有抽獎完成後一次性更新結果
+      if (settings.displayMode === ResultDisplay.POPUP) {
+        setResults(updatedResults);
+      } else {
+        setResults(updatedResults);
+      }
       console.log('🎯 [调试] 抽奖完成，已抽完', prizeSlotCount, '个', currentPrizeName, '名额');
     }
     
